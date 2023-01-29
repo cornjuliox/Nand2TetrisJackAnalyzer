@@ -18,9 +18,10 @@ RULES: List[Tuple] = [
 ]
 
 class LexerError(Exception):
-    def __init__(self, pos, char):
+    def __init__(self, line_no, column_no, pos):
+        self.line_no = line_no
+        self.column_no = column_no
         self.pos = pos
-        self.char = char
 
 class TokenBuilder():
     def __init__(self, block_of_text: str, rules: List[Tuple]):
@@ -73,6 +74,7 @@ class TokenBuilder():
                     self._line_start = matchobj.end()
                     self._pos = matchobj.end()
                     self._line_no += 1
+                    return None
 
                 # token: tuple = (token_type, matchobj.group(group), self._pos, self._line_no, self._column)
                 token: Token = Token(token_type, matchobj.group(group), self._line_no, self._column, self._pos)
