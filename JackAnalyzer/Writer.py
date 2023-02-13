@@ -5,7 +5,7 @@ from Token import Token
 def token_fucker(token: Token) -> str:
     template: str = "<{}>{}</{}>"
     tag: str = token.type.lower()
-    value: str = token.raw_value
+    value: str = token.value
     xml_tag: str = template.format(tag, value, tag)
     return xml_tag
 

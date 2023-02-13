@@ -1,18 +1,17 @@
 from typing import List, Any, Tuple
 import re
-from Token import Token, KEYWORD_LIST
+from Token import Token
 
 # NOTE: Yes, this is ugly.
 #       No, I don't care.
 RULES: List[Tuple] = [
     ("//.*", "COMMENT"),
     ("/\*.+\*/", "STAR_COMMENT"),
-    # ("\s", "WHITESPACE"),
     ("\\n|\\r", "NEWLINE"),
     (" ", "WHITESPACE"),
-    # ("\bclass|constructor|function|method|field|static|var|int|char|boolean|void|true|false|null|this|let|do|if|else|while|return\b", "KEYWORD"),
     ("[a-zA-Z_]\w*", "IDENTIFIER"),
     ("\d+", "INTEGER_CONSTANT"),
+    (r"\".*\"", "STRING_CONSTANT"),
     ("[\{\}\(\)\[\]\.\,\;\+\-\*\&\|\<\>\=\~]", "SYMBOL"),
     ("(?<![/\*\d\w])/(?![/\*\d\w])", "TRUE_DIV"),
 ]
@@ -24,12 +23,13 @@ class LexerError(Exception):
         self.pos = pos
 
 class TokenBuilder():
-    def __init__(self, block_of_text: str, rules: List[Tuple]):
+    def __init__(self, block_of_text: str, rules: List[Tuple], keyword_list: list):
         self._buf: str = block_of_text
         self._pos: int = 0
         self._line_start: int = 0
         self._line_no: int = 1
         self._column: int = 0
+        self._keyword_list: list = keyword_list
         self.group_map: dict = {}
 
         parts: List[str] = []
@@ -67,7 +67,7 @@ class TokenBuilder():
                 #       it for now.
                 if token_type in ["IDENTIFIER"]:
                     contents: str = matchobj.group(group)
-                    if contents in KEYWORD_LIST:
+                    if contents in self._keyword_list:
                         token_type = "KEYWORD"
 
                 if token_type in ["NEWLINE"]:
@@ -76,9 +76,12 @@ class TokenBuilder():
                     self._line_no += 1
                     return None
 
+                if token_type in ["COMMENT", "STAR_COMMENT"]:
+                    self._pos = matchobj.end()
+                    return None
+
                 # token: tuple = (token_type, matchobj.group(group), self._pos, self._line_no, self._column)
                 token: Token = Token(token_type, matchobj.group(group), self._line_no, self._column, self._pos)
-                print(token)
                 self._pos = matchobj.end()
                 return token
 
