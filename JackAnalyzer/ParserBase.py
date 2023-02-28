@@ -1,25 +1,33 @@
 from typing import List
 
-from Token import Token
-from ParserError import ParserError
+from JackAnalyzer.Token import Token
+from JackAnalyzer.ParserError import ParserError
 
 class ParserBase():
     def __init__(self, tokens: List[Token]):
         self._tokens: List[Token] = tokens
 
+    @property
+    def top(self):
+        return self._tokens[0]
+
     def peek(self):
         return self._tokens[0]
 
     def lookahead(self, offset=1):
-        return self._tokens(offset)
+        return self._tokens[offset]
 
     def scan_token(self):
         return self._tokens.pop(0)
 
     def expect_token(self, token_type: str, val: str = None, mult: List[str] = None):
-        next_token_type = self.top.type
-        expected_token_type = token_type
+        try:
+            next_token_type = self.top.type
+        except IndexError:
+            raise ParserError(None, f"Expected type {token_type} - '{val}', but there are no tokens left to parse!")
+
         err_type: str = f"Expected type {token_type}, but got {next_token_type} instead!"
+        expected_token_type = token_type
 
         if val:
             next_token_val = self.top.value

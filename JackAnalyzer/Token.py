@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Union
 
 KEYWORD_LIST: List[str] = [
     "class", "constructor", "function",
@@ -17,6 +17,16 @@ SYMBOL_LIST: List[str] = [
     "~",
 ]
 
+# NOTE: I'm having to differentiate between a 'Token' and a 'Node' in the context of Jack
+#       the base elements are keywords, symbols, and identifiers - those become Tokens.
+#       'nodes' comprise of 'combinations' of the above 3, and a node contains either nodes
+#       or tokens.
+# NOTE: I think the way to go is to define __call__() as a standard interface between the two
+#       data types, and then standardize on having both return XML of some kind
+#       Tokens - return a single xml tag, in a list. i.e <identifier>something</identifier>
+#       Nodes - return a list of xml tags, wrapped in a "container" of some kind
+#       Why the lists? so I can simplify the outgoing logic, and just += them together to create
+#       a single list and then "".join() (or whatever) to produce the final output
 class Token:
     def __init__(self, token_type: str, raw_value: Any, line_no: int, column_no: int, idx: int):
         self.type: str = token_type
@@ -29,6 +39,8 @@ class Token:
         return f"<{self.type} - {self.value} @ line {self.line_no}, col {self.column_no}, pos {self.idx}>".encode("unicode_escape").decode("utf-8")
 
     def xml(self):
+        # small hack to make the output conform to what the class
+        # requries of it.
         if self.type == "INTEGER_CONSTANT":
             tag: str = "integerConstant"
         elif self.type == "STRING_CONSTANT":
@@ -37,28 +49,34 @@ class Token:
             tag: str = self.type.lower()
 
         template: str = f"<{tag}>{self.value}</{tag}>"
-        return template
-
-class ParserToken:
-    def __init__(self, name: str):
-        self.name: str = name
-
-    def open_tag(self):
-        return f"<{self.name}>"
+        return [template]
     
-    def close_tag(self):
-        return f"</{self.name}>"
-
-    def __repr__(self):
-        return f"<ParserToken: {self.name}>"
+    def __call__(self):
+        return self.xml()
 
 class Node:
-    def __init__(self, title: str):
-        self._title: str = title
-        self._members: List[Node] = []
+    def __init__(self, nodetype: str):
+        self.type: str = nodetype
+        self._children: List[Union[Token, Node]] = []
+
+    def add(self, thing: Any):
+        if isinstance(thing, list):
+            for x in thing:
+                self._children.append(x)
+        else:
+            self._children.append(thing)
 
     def xml(self):
-        pass
+        template: List[str] = []
+        open_tag: str = f"<{self.type.lower()}>"
+        close_tag: str = f"</{self.type.lower()}"
+        template.append(open_tag)
 
-    def insert(self, new: Token):
-        self._members.append(new)
+        for child in self._children:
+            template.append(child())
+
+        template.append(close_tag)
+        return template
+    
+    def __call__(self):
+        return self.xml()

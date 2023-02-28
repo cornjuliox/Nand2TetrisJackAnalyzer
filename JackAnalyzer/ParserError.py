@@ -1,4 +1,4 @@
-from Token import Token
+from JackAnalyzer.Token import Token
 
 class ParserError(Exception):
     def __init__(self, token: Token, message: str):

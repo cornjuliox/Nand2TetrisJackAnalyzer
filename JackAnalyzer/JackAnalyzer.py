@@ -3,10 +3,10 @@ import os
 from typing import List
 from pathlib import Path
 
-from Tokenizer import TokenBuilder, RULES
-from Token import KEYWORD_LIST
-from Writer import token_fucker, xml_fucker
-from Parser import Parser
+from JackAnalyzer.Tokenizer import TokenBuilder, RULES
+from JackAnalyzer.Token import KEYWORD_LIST
+from JackAnalyzer.Writer import token_fucker, xml_fucker
+from JackAnalyzer.Parser import JackParser
 
 if __name__ == "__main__":
     try:
@@ -40,34 +40,8 @@ if __name__ == "__main__":
         print(f"-> Tokenizing {filepath}.")
         tokens: List[tuple] = [x for x in tb if x]
         print(tokens)
-        # parser: Parser = Parser(tokens=tokens)
-        # print(parser.parse())
-    #     print(f"-> Converting {filepath} tokens to tags.")
-    #     tags: List[str] = [token_fucker(x) for x in tokens]
-    #     print("-> Generating final XML.")
-    #     xml: str = xml_fucker(tags)
-    #     result: tuple = (filepath, xml)
-    #     results.append(result)
-
-    # for x in results:
-    #     print("-> Writing output files.")
-        
-    #     # NOTE: I need to change the name of the file
-    #     #       both name AND extension
-    #     #       simply changing the suffix will overwrite
-    #     #       the test files in the project directory.
-    #     oldfile: Path = x[0]
-    #     original_name: str = oldfile.stem
-    #     new_name: str = f"enricojr-{original_name}"
-    #     new_path: Path = oldfile.with_stem(new_name)
-    #     new_file: Path = new_path.with_suffix(".xml")
-    #     print(f"-> Renamed {oldfile} to {new_file}")
-
-    #     with new_file.open("w") as F:
-    #         F.write(x[1])
-
-    #     print(f"-> File {new_file} successfully written.")
+        parser: JackParser = JackParser(tokens=tokens)
     
-    # print("-> Program complete!")
+    print("-> Program complete!")
 
 

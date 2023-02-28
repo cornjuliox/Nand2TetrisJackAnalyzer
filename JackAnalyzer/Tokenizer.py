@@ -1,6 +1,6 @@
 from typing import List, Any, Tuple
 import re
-from Token import Token
+from JackAnalyzer.Token import Token
 
 # NOTE: Yes, this is ugly.
 #       No, I don't care.
