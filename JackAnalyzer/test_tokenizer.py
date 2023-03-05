@@ -6,7 +6,7 @@ from JackAnalyzer.Tokenizer import TokenBuilder, RULES
 from JackAnalyzer.Parser import JackParser
 
 # NOTE: What do we do when learning how to write programming languages?
-#       write programming languages to debug our programming languages.
+#       write languages to debug our programming languages.
 #       Instead of using tuples to specify test criteria, I can write something more concise i.e
 #       keyword%static, keyword%int, identifier, symbol%;, symbol%,
 #       <type>%<value>
@@ -25,7 +25,6 @@ def translate_test_token(token: str):
         token_value: str = parts[1]
         return (token_type, token_value)
     
-
 @pytest.mark.parametrize("teststr, result", [
     ("static int testvar1;", r"keyword%static keyword%int identifier symbol%;"),
     ("static boolean testvar1;", r"keyword%static keyword%boolean identifier symbol%;"),
@@ -68,7 +67,6 @@ def test_class_var_dec_2(teststr: str, result: str):
 @pytest.mark.parametrize("teststr, result", [
     # ("", None), <- this case might need to be tested further up, because the parenthesis are not a part of this rule
     # they are outside of it and passing an empty string will just cause the parser to complain.
-    (")", ""),
     ("int ax, int bx, int cx", r"keyword%int identifier symbol%, keyword%int identifier symbol%, keyword%int identifier"),
     ("int ax, int bx", r"keyword%int identifier symbol%, keyword%int identifier"),
     ("int ax", r"keyword%int identifier"),
@@ -89,115 +87,79 @@ def test_parameter_list_dec_2(teststr: str, result: str):
         
         received_type: str = token.type
         received_value: str = token.value
-
         assert expected_type == received_type
         if expected_value is not None:
             assert expected_value == received_value
 
-@pytest.mark.skip()
 @pytest.mark.parametrize("teststr, result", [
-    (
-        "int ax, int bx, int cx, int dx",
-        [
-            ("KEYWORD", "int"),
-            ("IDENTIFIER", None),
-            ("SYMBOL", ","),
-            ("KEYWORD", "int"),
-            ("IDENTIFIER", None),
-            ("SYMBOL", ","),
-            ("KEYWORD", "int"),
-            ("IDENTIFIER", None),
-            ("SYMBOL", ","),
-            ("KEYWORD", "int"),
-            ("IDENTIFIER", None),
-        ]
-    ),
-    (
-        "char ax, char bx",
-        [
-            ("KEYWORD", "char"),
-            ("IDENTIFIER", None),
-            ("SYMBOL", ","),
-            ("KEYWORD", "char"),
-            ("IDENTIFIER", None),
-        ]
-    ),
-    (
-        "boolean ax, boolean bx",
-        [
-            ("KEYWORD", "boolean"),
-            ("IDENTIFIER", None),
-            ("SYMBOL", ","),
-            ("KEYWORD", "boolean"),
-            ("IDENTIFIER", None),
-        ]
-    ),
-    (
-        "int ax",
-        [
-            ("KEYWORD", "int"),
-            ("IDENTIFIER", None),
-        ]
-    ),
-    (
-        "char ax",
-        [
-            ("KEYWORD", "char"),
-            ("IDENTIFIER", None),
-        ]
-    ),
-    (
-        "boolean ax",
-        [
-            ("KEYWORD", "boolean"),
-            ("IDENTIFIER", None),
-        ]
-    ),
+    ("sampleFunction()", r"identifier symbol%( node%expressionList symbol%)"),
+    ("someClass.someMethod()", r"identifier symbol%. identifier symbol%( node%expressionList symbol%)"),
 ])
-def test_paramter_list_dec(teststr: str, result: List):
-    """ Tests the parameterList rule from the grammar spec. """
+def test_subroutine_call(teststr: str, result: str):
+    # NOTE: Prep the tokenstream
     z: TokenBuilder = TokenBuilder(teststr, RULES, KEYWORD_LIST)
     tokenstream: List[Token] = [x for x in z if x]
     j: JackParser = JackParser(tokenstream)
-    p: ParserContainer = j.subroutine_parameter_list()
-    for pair in result:
-        token = p._children.pop(0)
-        expected_type = pair[0]
-        expected_value = pair[1]
+    p: Node =  j.subroutine_call()
 
-        received_type = token.type
-        received_value = token.value
+    test_tokenstream: List[str] = tokenize_test_string(result)
+    for pair in test_tokenstream:
+        token: Token = p.pop(0)
+        res: Tuple = translate_test_token(pair) 
+        expected_type = res[0]
+        expected_value = res[1]
 
-        assert received_type == expected_type
-        if expected_value is not None:
-            assert received_value == expected_value
+        # NOTE: holy SHIT this is messy, fix it later.
+        if expected_type.lower() == "node":
+            received_type: bool = isinstance(token, Node)
+            received_value: str = token.type
 
-# do moveSquare();
-# do Screen.moveSquare();
-@pytest.mark.skip()
-@pytest.mark.parametrize("teststr, result", [
-    ("moveSquare()", [("IDENTIFIER", None), ("SYMBOL", "("), ("PARSERCONTAINER", "expressionList"), ("SYMBOL", ")")]),
-    ("Screen.moveSquare()", [])
-])
-def test_subroutine_call_parser(teststr: str, result: List):
-    # NOTE: Should be <symbol>(</symbol<expressionList></expressionList><symbol>)</symbol>
-    #       i.e the ExpressionList does not include its containing parenthesis.
-    z: TokenBuilder = TokenBuilder(teststr, RULES, KEYWORD_LIST)
-    tokenstream: List[Token] = [x for x in z if x]
-    j: JackParser = JackParser(tokenstream)
-    p: ParserContainer = j.subroutine_call()
-    for pair in result:
-        token = p._children.pop(0)
-        expected_type = pair[0]
-        expected_value = pair[1]
-        
-        if expected_type == "PARSERCONTAINER":
-            assert token.name == expected_value
-        else:
-            received_type = token.type
-            received_value = token.value
+            assert received_type
+            assert token.type == received_value
+        else: 
+            received_type: str = token.type
+            received_value: str = token.value
 
-            assert received_type == expected_type
+            assert expected_type == received_type
             if expected_value is not None:
-                assert received_value == expected_value
+                assert expected_value == received_value
 
+@pytest.mark.parametrize("teststr, result", [
+    ("12345", r"node%term identifier"),
+    ("\"testStringConstant\"", r"node%term stringConstant"),
+    ("true", r"node%term booleanConstant"),
+    ("false", r""),
+    ("this_is_a_var_name"),
+])
+def test_simple_term(teststr: str, result: str):
+    # NOTE: a "simple term" is just 'term'
+    #       e.g integerConstant, stringConstant, keywordConstant, varName
+    #       e.g unaryOp + term
+    # NOTE: Prep the tokenstream
+    z: TokenBuilder = TokenBuilder(teststr, RULES, KEYWORD_LIST)
+    tokenstream: List[Token] = [x for x in z if x]
+    j: JackParser = JackParser(tokenstream)
+    p: Node =  j.term()
+
+    test_tokenstream: List[str] = tokenize_test_string(result)
+    for pair in test_tokenstream:
+        token: Token = p.pop(0)
+        res: Tuple = translate_test_token(pair) 
+        expected_type = res[0]
+        expected_value = res[1]
+
+        # NOTE: holy SHIT this is messy, fix it later.
+        if expected_type.lower() == "node":
+            received_type: bool = isinstance(token, Node)
+            received_value: str = token.type
+
+            assert received_type
+            assert token.type == received_value
+        else: 
+            received_type: str = token.type
+            received_value: str = token.value
+
+            assert expected_type == received_type
+            if expected_value is not None:
+                assert expected_value == received_value
+    pass

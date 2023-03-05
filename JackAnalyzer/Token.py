@@ -59,6 +59,9 @@ class Node:
         self.type: str = nodetype
         self._children: List[Union[Token, Node]] = []
 
+    def __repr__(self):
+        return f"<Node object of type {{self.type}}>"
+
     def add(self, thing: Any):
         if isinstance(thing, list):
             for x in thing:
@@ -69,7 +72,7 @@ class Node:
     def xml(self):
         template: List[str] = []
         open_tag: str = f"<{self.type.lower()}>"
-        close_tag: str = f"</{self.type.lower()}"
+        close_tag: str = f"</{self.type.lower()}>"
         template.append(open_tag)
 
         for child in self._children:

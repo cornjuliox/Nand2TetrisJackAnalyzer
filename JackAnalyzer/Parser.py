@@ -237,8 +237,8 @@ class JackParser(ParserBase):
         
         # className, subroutineName, varName all drill down to "identifier"
         results: List[Token] = []
-        subroutine_name: Token = self.match_identifier()
-        results.append(subroutine_name)
+        subroutine_or_class_name: Token = self.match_identifier()
+        results.append(subroutine_or_class_name)
 
         try:
             open_paren: Token = self.expect_token("SYMBOL", "(")
@@ -246,6 +246,10 @@ class JackParser(ParserBase):
         except ParserError:
             dot: Token = self.expect_token("SYMBOL", ".")
             results.append(dot)
+            subroutine_name: Token = self.expect_token("IDENTIFIER")
+            results.append(subroutine_name)
+            open_paren: Token = self.expect_token("SYMBOL", "(")
+            results.append(open_paren)
         
         expression_list: Node = self.expression_list()
         results.append(expression_list)
@@ -263,39 +267,72 @@ class JackParser(ParserBase):
     ################### <EXPRESSIONS> ################### 
 
     # NOTE: needs to be expressionList -> expression -> term
-    def expression_list(self):
+    def expression_list(self) -> Node:
         result: Node = Node("expressionList")
         return result
 
-    def expression(self):
+    def expression(self) -> Node:
         result: Node = Node("expression")
-        pass
+        term: Node = self.term()
+        result.add(term)
+        op_terms: List[Node] = self._op_term()
+        if op_terms:
+            result.add(op_terms)
+        return result
 
     def term(self) -> Node:
         result: Node = Node("term")
-        try:
-            constant1: Token = self.match_integer_constant()
-            constant2: Token = self.match_keyword_constant()
-            constant3: Token = self.match_string_constant()
-        except ParserError:
-            pass
 
-        try:
+        if self.top.type == "INTEGER_CONSTANT":
+            int_constant: Token = self.match_integer_constant()
+            result.add(int_constant)
+            return result
+        elif self.top.type == "STRING_CONSTANT":
+            str_constant: Token = self.match_string_constant()
+            result.add(str_constant)
+            return result
+        elif self.top.type == "KEYWORD_CONSTANT":
+            kw_constant: Token = self.match_keyword_constant()
+            result.add(kw_constant)
+            return result
+        elif self.top.type == "IDENTIFIER":
+            # NOTE: varname has x2 variants here.
+            #       varName | varName[expression]
             var_name: Token = self.match_identifier()
-        except ParserError:
-            pass
-        try:
-            pass
-        except:
-            pass
+            result.add(var_name)
+            if self.top.type == "SYMBOL" and self.top.value == "[":
+                expression: Node = self.expression()
+                result.add(expression)
+                close_square: Token = self.expect_token("SYMBOL", "]")
+                result.add(close_square)
+        elif self.top.type == "SYMBOL" and self.top.value == "(":
+            expressions_list: Node = self.expression_list()
+            result.add(expressions_list)
+            close_paren: Token = self.expect_token("SYMBOL", ")")
+            result.add(close_paren)
+        elif self.top.type == "SYMBOL" and self.top.value in ["~", "-"]:
+            unary_op: Token = self.match_unary_op()
+            result.add(unary_op)
+            term: Node = self.term()
+            result.add(term)
+        # NOTE: if none of the above pass, then this is a subroutine call.
+        else:
+            subcall: List[Token] = self.subroutine_call()
+            result.add(subcall)
+
+        return result
 
     def _op_term(self):
         result: List[Token] = []
-        try:
-            op: Token = self.match_op()
+        try:        
+            new_term: Node = self.term()
+            result.append(new_term)
         except ParserError:
-            pass
-
+            return result + self._op_term()
+        
+        # should we even reach this under normal circumstances??
+        print("hi there")
+        return result
 
 
     ################### </EXPRESSIONS> ################### 
@@ -311,7 +348,7 @@ class JackParser(ParserBase):
 
     # NOTE: This is the entrypoint for the class 
     def klass(self):
-        result: ParserContainer = ParserContainer("class")
+        result: Node = Node("class")
 
         class_kw: Token = self.expect_token("KEYWORD", "class")
         result.add(class_kw)
