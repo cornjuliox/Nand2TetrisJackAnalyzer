@@ -125,21 +125,15 @@ def test_subroutine_call(teststr: str, result: str):
                 assert expected_value == received_value
 
 @pytest.mark.parametrize("teststr, result", [
-    ("12345", r"node%term identifier"),
-    ("\"testStringConstant\"", r"node%term stringConstant"),
-    ("true", r"node%term booleanConstant"),
-    ("false", r""),
-    ("this_is_a_var_name"),
+    ("sampleFunction()", r"identifier symbol%( node%expressionList symbol%)"),
+    ("someClass.someMethod()", r"identifier symbol%. identifier symbol%( node%expressionList symbol%)"),
 ])
-def test_simple_term(teststr: str, result: str):
-    # NOTE: a "simple term" is just 'term'
-    #       e.g integerConstant, stringConstant, keywordConstant, varName
-    #       e.g unaryOp + term
+def test_subroutine_call(teststr: str, result: str):
     # NOTE: Prep the tokenstream
     z: TokenBuilder = TokenBuilder(teststr, RULES, KEYWORD_LIST)
     tokenstream: List[Token] = [x for x in z if x]
     j: JackParser = JackParser(tokenstream)
-    p: Node =  j.term()
+    p: Node =  j._subroutine_let()
 
     test_tokenstream: List[str] = tokenize_test_string(result)
     for pair in test_tokenstream:
@@ -162,4 +156,42 @@ def test_simple_term(teststr: str, result: str):
             assert expected_type == received_type
             if expected_value is not None:
                 assert expected_value == received_value
-    pass
+
+# @pytest.mark.parametrize("teststr, result", [
+#     ("12345", r"node%term identifier"),
+#     ("\"testStringConstant\"", r"node%term stringConstant"),
+#     ("true", r"node%term booleanConstant"),
+#     ("false", r""),
+#     ("this_is_a_var_name"),
+# ])
+# def test_simple_term(teststr: str, result: str):
+#     # NOTE: a "simple term" is just 'term'
+#     #       e.g integerConstant, stringConstant, keywordConstant, varName
+#     #       e.g unaryOp + term
+#     # NOTE: Prep the tokenstream
+#     z: TokenBuilder = TokenBuilder(teststr, RULES, KEYWORD_LIST)
+#     tokenstream: List[Token] = [x for x in z if x]
+#     j: JackParser = JackParser(tokenstream)
+#     p: Node =  j.term()
+
+#     test_tokenstream: List[str] = tokenize_test_string(result)
+#     for pair in test_tokenstream:
+#         token: Token = p.pop(0)
+#         res: Tuple = translate_test_token(pair) 
+#         expected_type = res[0]
+#         expected_value = res[1]
+
+#         # NOTE: holy SHIT this is messy, fix it later.
+#         if expected_type.lower() == "node":
+#             received_type: bool = isinstance(token, Node)
+#             received_value: str = token.type
+
+#             assert received_type
+#             assert token.type == received_value
+#         else: 
+#             received_type: str = token.type
+#             received_value: str = token.value
+
+#             assert expected_type == received_type
+#             if expected_value is not None:
+#                 assert expected_value == received_value

@@ -109,7 +109,33 @@ class JackParser(ParserBase):
 
     def _subroutine_let(self) -> Node:
         result: Node = Node("letStatement")
-        pass
+
+        let_kw: Token = self.expect_token("KEYWORD", "let")
+        result.add(let_kw)
+
+        var_name: Token = self.expect_token("IDENTIFIER")
+        result.add(var_name)
+
+        if self.top.type == "SYMBOL" and self.top.value == "[":
+            open_square: Token = self.expect_token("SYMBOL", "[")
+            result.add(open_square)
+
+            expression: Node = self.expression()
+            result.add(expression)
+
+            close_square: Token = self.expect_token("SYMBOL", "]")
+            result.add(close_square)
+
+        equals: Token = self.expect_token("SYMBOL", "=")
+        result.add(equals)
+
+        expression: Node = self.expression()
+        result.add(expression)
+
+        semicolon: Token = self.expect_token("SYMBOL", ";")
+        result.add(semicolon)
+
+        return result
 
     def _subroutine_if(self) -> Node:
         result: Node = Node("ifStatement")
@@ -275,10 +301,12 @@ class JackParser(ParserBase):
         result: Node = Node("expression")
         term: Node = self.term()
         result.add(term)
-        op_terms: List[Node] = self._op_term()
-        if op_terms:
+        if self.top.type == "SYMBOL" and self.top.value in ["+", "-", "*", "/", "&", "|", "<", ">", "="]:
+            op_terms: List[Node] = self._op_term()
             result.add(op_terms)
-        return result
+            return result
+        else:
+            return result
 
     def term(self) -> Node:
         result: Node = Node("term")
@@ -305,6 +333,11 @@ class JackParser(ParserBase):
                 result.add(expression)
                 close_square: Token = self.expect_token("SYMBOL", "]")
                 result.add(close_square)
+            if self.top.type == "SYMBOL" and self.top.value == ".":
+                dot: Token = self.expect_token("SYMBOL", ".")
+                result.add(dot)
+                subcall: List[Token] = self.subroutine_call()
+                result.add(subcall)
         elif self.top.type == "SYMBOL" and self.top.value == "(":
             expressions_list: Node = self.expression_list()
             result.add(expressions_list)
@@ -324,15 +357,15 @@ class JackParser(ParserBase):
 
     def _op_term(self):
         result: List[Token] = []
-        try:        
-            new_term: Node = self.term()
-            result.append(new_term)
+        op: Token = self._match_op()
+        result.add(op)
+        try:
+            term: Node = self.term()
+            result.add(term)
+            return result
         except ParserError:
-            return result + self._op_term()
-        
-        # should we even reach this under normal circumstances??
-        print("hi there")
-        return result
+            return result
+
 
 
     ################### </EXPRESSIONS> ################### 

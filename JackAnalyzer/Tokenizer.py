@@ -43,7 +43,6 @@ class TokenBuilder():
         self.full_re: str = "|".join(parts)
         self.re_obj: re.Pattern = re.compile(self.full_re)
         self.no_whitespace: re.Pattern = re.compile("\S")
-        print(f"--> using {self.full_re}")
 
     def __iter__(self):
         return self

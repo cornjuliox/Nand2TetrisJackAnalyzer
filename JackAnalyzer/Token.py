@@ -60,7 +60,7 @@ class Node:
         self._children: List[Union[Token, Node]] = []
 
     def __repr__(self):
-        return f"<Node object of type {{self.type}}>"
+        return f"<Node object of type {self.type}>"
 
     def add(self, thing: Any):
         if isinstance(thing, list):
