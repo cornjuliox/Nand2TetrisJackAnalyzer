@@ -1,12 +1,7 @@
-from JackAnalyzer.Token import Token
+from JackAnalyzer.Token import Token, List
 
 class ParserError(Exception):
-    def __init__(self, token: Token, message: str):
+    def __init__(self, token: Token, message: str, stream: List):
         self.token: Token = token
         self.message: str = message
-
-# NOTE: Don't worry if this doesn't make sense
-#       I don't know what I'm doing so I can't explain
-#       it to you. 
-class KeepGoingError(Exception):
-    pass
+        self.stream: List = stream

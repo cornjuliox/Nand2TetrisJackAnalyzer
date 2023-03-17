@@ -36,7 +36,9 @@ class Token:
         self.idx = idx
 
     def __repr__(self):
-        return f"<{self.type} - {self.value} @ line {self.line_no}, col {self.column_no}, pos {self.idx}>".encode("unicode_escape").decode("utf-8")
+        # return f"<{self.type} - {self.value} @ line {self.line_no}, col {self.column_no}, pos {self.idx}>".encode("unicode_escape").decode("utf-8")
+        return f"< '{self.value}' ({self.type}, {self.line_no} {self.column_no} {self.idx})>".encode("unicode_escape").decode("utf-8")
+
 
     def xml(self):
         # small hack to make the output conform to what the class
@@ -71,8 +73,8 @@ class Node:
 
     def xml(self):
         template: List[str] = []
-        open_tag: str = f"<{self.type.lower()}>"
-        close_tag: str = f"</{self.type.lower()}>"
+        open_tag: str = f"<{self.type}>"
+        close_tag: str = f"</{self.type}>"
         template.append(open_tag)
 
         for child in self._children:

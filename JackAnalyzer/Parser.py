@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Union
 
 from JackAnalyzer.Token import Token, Node
 from JackAnalyzer.ParserBase import ParserBase
@@ -12,7 +12,7 @@ class JackParser(ParserBase):
     ################### <HELPER FUNCTIONS> ################### 
     ################### <HELPER FUNCTIONS> ################### 
 
-    def _match_recursive_type_varname(self) -> List[Token]:
+    def _match_recursive_type_varname(self) -> Union[List, List[Token]]:
         """
         Helper function to match 'type varName (, type varName)*' clusters.
 
@@ -21,7 +21,7 @@ class JackParser(ParserBase):
         # quick bailout - parameter lists can be EMPTY!
         next_token: Token = self.top
         if next_token.type == "SYMBOL" and next_token.value == ")":
-            return
+            return [] 
         else:
             results: List[Token] = []
             var_type: Token = self.match_type()
@@ -129,7 +129,7 @@ class JackParser(ParserBase):
         equals: Token = self.expect_token("SYMBOL", "=")
         result.add(equals)
 
-        expression: Node = self.expression()
+        expression = self.expression()
         result.add(expression)
 
         semicolon: Token = self.expect_token("SYMBOL", ";")
@@ -139,19 +139,24 @@ class JackParser(ParserBase):
 
     def _subroutine_if(self) -> Node:
         result: Node = Node("ifStatement")
-        pass
+        return result 
 
     def _subroutine_while(self) -> Node:
         result: Node = Node("whileStatement")
-        pass
+        return result
 
     def _subroutine_do(self) -> Node:
         result: Node = Node("doStatement")
-        pass
+        do_kw: Token = self.expect_token("KEYWORD", "do")
+        result.add(do_kw)
+        sub_call: List[Union[Token, Node]] = self.subroutine_call()
+        result.add(sub_call)
+
+        return result
 
     def _subroutine_return(self) -> Node:
         result: Node = Node("returnStatement")
-        pass
+        return result
 
     def subroutine_dec(self) -> Node:
         """ Matches the subroutineDec rule. """
@@ -163,15 +168,14 @@ class JackParser(ParserBase):
         try:
             subroutine_datatype: Token = self.expect_token("KEYWORD", "void")
         except ParserError:
-            subroutine_datatype: Token = self.match_identifier()
+            subroutine_datatype = self.match_identifier()
 
         result.add(subroutine_datatype)
-        
         subroutine_name: Token = self.match_identifier()
         result.add(subroutine_name)
         subroutine_parameter_list_open: Token = self.expect_token("SYMBOL", "(")
         result.add(subroutine_parameter_list_open)
-        subroutine_parameter_list: Node = self.subroutine_parameter_list(self)
+        subroutine_parameter_list: Node = self.subroutine_parameter_list()
         result.add(subroutine_parameter_list)
         subroutine_parameter_list_close: Token = self.expect_token("SYMBOL", ")")
         result.add(subroutine_parameter_list_close)
@@ -221,8 +225,7 @@ class JackParser(ParserBase):
         result.add(semicolon)
         return result
 
-    def subroutine_body_statements(self):
-        results: Node = Node("statements")
+    def subroutine_body_statements(self: 'JackParser') -> Union[Node, None]:
         valid_statements: dict = {
             "let": self._subroutine_let,
             "if": self._subroutine_if,
@@ -235,16 +238,18 @@ class JackParser(ParserBase):
         #       will either consume the token and move self.top
         #       or raise a ParserError thereby halting the parse.
         current_type: str = self.top.type
-        current_val: str =  self.type.value
+        current_val: str =  self.top.value
 
         if current_type == "KEYWORD" and current_val in valid_statements:
+            results: Node = Node("statements")
             target: Callable = valid_statements[current_val]
             intermediate_result: Node = target()
             results.add(intermediate_result)
-            # NOTE: Check this later...
-            return results + self.subroutine_body_statements()
+            # NOTE: This seems iffy; revisit later
+            # NOTE: Should we recurse and let the subsequent call bail out? 
+            return self.subroutine_body_statements()
         else:
-            return results
+            return None 
 
     def subroutine_body(self) -> Node:
         result: Node = Node("subroutineBody")
@@ -252,37 +257,48 @@ class JackParser(ParserBase):
         result.add(open_bracket)
         vardecs: Node = self.subroutine_body_var_dec()
         result.add(vardecs)
-        statements: Node = self.subroutine_body_statements()
+        statements: Union[Node, None] = self.subroutine_body_statements()
         result.add(statements)
         
         return result
     
-    def subroutine_call(self) -> List[Token]:
+    def subroutine_call(self) -> List[Union[Token, Node]]:
         # there's two forms for this; either a simple `name(expressionList)`
         # call, or a (className|varName)'.'subroutineName(expressionList) version
         
         # className, subroutineName, varName all drill down to "identifier"
-        results: List[Token] = []
+        results: List[Union[Token, Node]] = []
+
         subroutine_or_class_name: Token = self.match_identifier()
         results.append(subroutine_or_class_name)
 
-        try:
-            open_paren: Token = self.expect_token("SYMBOL", "(")
-            results.append(open_paren)
-        except ParserError:
-            dot: Token = self.expect_token("SYMBOL", ".")
-            results.append(dot)
-            subroutine_name: Token = self.expect_token("IDENTIFIER")
-            results.append(subroutine_name)
-            open_paren: Token = self.expect_token("SYMBOL", "(")
-            results.append(open_paren)
-        
-        expression_list: Node = self.expression_list()
-        results.append(expression_list)
-        close_paren: Token = self.expect_token("SYMBOL", ")")
-        results.append(close_paren)
-        
-        return results
+        if self.top.type == "SYMBOL":
+            if self.top.value == ".":
+                dot: Token = self.expect_token("SYMBOL", ".")
+                results.append(dot)
+                subroutine_name: Token = self.match_identifier()
+                results.append(subroutine_name)
+                open_paren: Token = self.expect_token("SYMBOL", "(")
+                results.append(open_paren)
+                expression_list: Node = self.expression_list()
+                results.append(expression_list)
+                close_paren: Token = self.expect_token("SYMBOL", ")")
+                return results
+
+        open_paren = self.expect_token("SYMBOL", "(")
+        results.append(open_paren)
+        # NOTE: empty expressions shouldn't appear at all
+        if self.top.type == "SYMBOL" and self.top.value == ")":
+            # NOTE: bail immediately if you see the ')' next
+            close_paren = self.expect_token("SYMBOL", ")")
+            results.append(close_paren)
+            return results
+        else:
+            expression_list = self.expression_list()
+            results.append(expression_list)
+            close_paren = self.expect_token("SYMBOL", ")")
+            results.append(close_paren)
+            return results
 
     ################### </SUBROUTINE SHIT> ################### 
     ################### </SUBROUTINE SHIT> ################### 
@@ -295,78 +311,119 @@ class JackParser(ParserBase):
     # NOTE: needs to be expressionList -> expression -> term
     def expression_list(self) -> Node:
         result: Node = Node("expressionList")
+        expression: Node = self.expression()
+        result.add(expression)
+        if self.top.type == "SYMBOL" and self.top.value == ",":
+            comma: Token = self.expect_token("SYMBOL", ",")
+            result.add(comma)
+            next_expr: Node = self.expression()
+            result.add(next_expr)
+
         return result
 
     def expression(self) -> Node:
         result: Node = Node("expression")
         term: Node = self.term()
         result.add(term)
-        if self.top.type == "SYMBOL" and self.top.value in ["+", "-", "*", "/", "&", "|", "<", ">", "="]:
-            op_terms: List[Node] = self._op_term()
-            result.add(op_terms)
-            return result
-        else:
-            return result
-
-    def term(self) -> Node:
-        result: Node = Node("term")
-
-        if self.top.type == "INTEGER_CONSTANT":
-            int_constant: Token = self.match_integer_constant()
-            result.add(int_constant)
-            return result
-        elif self.top.type == "STRING_CONSTANT":
-            str_constant: Token = self.match_string_constant()
-            result.add(str_constant)
-            return result
-        elif self.top.type == "KEYWORD_CONSTANT":
-            kw_constant: Token = self.match_keyword_constant()
-            result.add(kw_constant)
-            return result
-        elif self.top.type == "IDENTIFIER":
-            # NOTE: varname has x2 variants here.
-            #       varName | varName[expression]
-            var_name: Token = self.match_identifier()
-            result.add(var_name)
-            if self.top.type == "SYMBOL" and self.top.value == "[":
-                expression: Node = self.expression()
-                result.add(expression)
-                close_square: Token = self.expect_token("SYMBOL", "]")
-                result.add(close_square)
-            if self.top.type == "SYMBOL" and self.top.value == ".":
-                dot: Token = self.expect_token("SYMBOL", ".")
-                result.add(dot)
-                subcall: List[Token] = self.subroutine_call()
-                result.add(subcall)
-        elif self.top.type == "SYMBOL" and self.top.value == "(":
-            expressions_list: Node = self.expression_list()
-            result.add(expressions_list)
-            close_paren: Token = self.expect_token("SYMBOL", ")")
-            result.add(close_paren)
-        elif self.top.type == "SYMBOL" and self.top.value in ["~", "-"]:
-            unary_op: Token = self.match_unary_op()
-            result.add(unary_op)
-            term: Node = self.term()
-            result.add(term)
-        # NOTE: if none of the above pass, then this is a subroutine call.
-        else:
-            subcall: List[Token] = self.subroutine_call()
-            result.add(subcall)
+        more_terms: bool = True
+        while more_terms:
+            if self.top.type == "SYMBOL" and self.top.value in ["+", "-", "*", "/", "&", "|", "<", ">", "="]:
+                op: Token = self.match_op()
+                result.add(op)
+                new_term: Node = self.term()
+                result.add(new_term)
+            else:
+                more_terms = False
 
         return result
 
-    def _op_term(self):
-        result: List[Token] = []
-        op: Token = self._match_op()
-        result.add(op)
+    def term(self) -> Node:
+        # TODO: Is there anything wrong with passing a reference to self deeper into
+        #       a call chain like this? I don't think so, but we'll see.\
+        # NOTE: yeah passing an iterable that's modified in-place by every single
+        #       method here is SUCH a great idea.
+        # NOTE: we'll see.
+        # NOTE: Seems OK for now
+        def __handle_int_constant(self: JackParser):
+            int_constant: Token = self.match_integer_constant()
+            return int_constant 
+        
+        def __handle_str_constant(self: JackParser):
+            str_constant: Token = self.match_string_constant()
+            return str_constant
+        
+        def __handle_keyword(self: JackParser):
+            kw_constant: Token = self.match_keyword_constant()
+            return kw_constant
+        
+        def __handle_identifier(self: JackParser):
+            results: List = []
+            varname: Token = self.match_identifier()
+            results.append(varname)
+            if self.top.type == "SYMBOL" and self.top.value == "[":
+                open_square: Token = self.expect_token("SYMBOL", "[")
+                results.append(open_square)
+                expression: Node = self.expression()
+                results.append(expression)
+                close_square: Token = self.expect_token("SYMBOL", "]")
+                results.append(close_square)
+            elif self.top.type == "SYMBOL" and self.top.value == ".":
+                dot: Token = self.expect_token("SYMBOL", ".")
+                results.append(dot)
+                subcall: List[Union[Token, Node]] = self.subroutine_call()
+                results += subcall
+
+            return results
+        
+        def __handle_symbol(self: JackParser):
+            # remember, "term op term"!
+            results: List = []
+            if self.top.value == "(":
+                open_paren: Token = self.expect_token("SYMBOL", "(")
+                results.append(open_paren)
+                expressions: Node = self.expression()
+                results.append(expressions)
+                close_paren: Token = self.expect_token("SYMBOL", ")")
+                results.append(close_paren)
+                return results
+            elif self.top.value in ["~", "-"]: 
+                unary_op: Token = self.match_unary_op()
+                results.append(unary_op)
+                term: Node = self.term()
+                results.append(term)
+                return results
+            else:
+                op: Token = self.match_op()
+                results.append(op)
+                term = self.term()
+                results.append(term)
+                return results
+
+        result: Node = Node("term")
+        current_token_type: str = self.top.type
+
+        dispatch_table = {
+            "INTEGER_CONSTANT": __handle_int_constant,
+            "STRING_CONSTANT": __handle_str_constant,
+            "KEYWORD": __handle_keyword,
+            "IDENTIFIER": __handle_identifier,
+            "SYMBOL": __handle_symbol,
+        }
         try:
-            term: Node = self.term()
-            result.add(term)
-            return result
-        except ParserError:
+            handler: Callable = dispatch_table[current_token_type]
+        except KeyError:
+            # treat as a subroutine call
+            subcall: List[Union[Token, Node]] = self.subroutine_call()
+            result.add(subcall)
             return result
 
+        token_node: Union[Token, Node, List] = handler(self)
+        result.add(token_node)
 
+        return result
+    
+    def _op_term(self):
+        pass
 
     ################### </EXPRESSIONS> ################### 
     ################### </EXPRESSIONS> ################### 
