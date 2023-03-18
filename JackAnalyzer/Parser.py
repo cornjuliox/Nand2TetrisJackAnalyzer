@@ -92,7 +92,7 @@ class JackParser(ParserBase):
         int_constant: Token = self.expect_token("INTEGER_CONSTANT")
         # value should be between 0 - 32767
         if int(int_constant.value) < 0 or int(int_constant.value) > 32767: 
-            raise ParserError(int_constant, "Integer range should be between 0..32767")
+            raise ParserError(int_constant, "Integer range should be between 0..32767", self._tokens)
         return int_constant
 
     def match_string_constant(self) -> Token:
@@ -309,15 +309,34 @@ class JackParser(ParserBase):
     ################### <EXPRESSIONS> ################### 
 
     # NOTE: needs to be expressionList -> expression -> term
+
+    def _moar_expressions(self) -> List[Union[Token, Node]]:
+        try:
+            if self.top.type == "SYMBOL" and self.top.value == ")":
+                return [] 
+
+            else:
+                results: List[Union[Node, Token]] = []
+                expression: Node = self.expression()
+                results.append(expression)
+                try:
+                    comma: Token = self.expect_token("SYMBOL", ",")
+                    results.append(comma)
+                    return results + self._moar_expressions()
+                except ParserError:
+                    return results
+        except IndexError:
+            return []
+
     def expression_list(self) -> Node:
+        # import pdb
+        # pdb.set_trace()
         result: Node = Node("expressionList")
-        expression: Node = self.expression()
-        result.add(expression)
-        if self.top.type == "SYMBOL" and self.top.value == ",":
-            comma: Token = self.expect_token("SYMBOL", ",")
-            result.add(comma)
-            next_expr: Node = self.expression()
-            result.add(next_expr)
+        try:
+            expressions: List[Union[Token, Node]] = self._moar_expressions()
+            result.add(expressions)
+        except ParserError:
+            return result
 
         return result
 
@@ -338,12 +357,6 @@ class JackParser(ParserBase):
         return result
 
     def term(self) -> Node:
-        # TODO: Is there anything wrong with passing a reference to self deeper into
-        #       a call chain like this? I don't think so, but we'll see.\
-        # NOTE: yeah passing an iterable that's modified in-place by every single
-        #       method here is SUCH a great idea.
-        # NOTE: we'll see.
-        # NOTE: Seems OK for now
         def __handle_int_constant(self: JackParser):
             int_constant: Token = self.match_integer_constant()
             return int_constant 

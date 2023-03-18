@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from JackAnalyzer.Token import Token
 from JackAnalyzer.ParserError import ParserError
@@ -20,7 +20,7 @@ class ParserBase():
     def scan_token(self):
         return self._tokens.pop(0)
 
-    def expect_token(self, token_type: str, val: str = None, mult: List[str] = None):
+    def expect_token(self, token_type: str, val: Union[str, None] = None, mult: Union[List[str], None] = None):
 
         print(f"current token stream -> {self._tokens}")
         try:
