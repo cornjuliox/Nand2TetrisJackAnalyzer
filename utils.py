@@ -9,7 +9,10 @@ def make_tokenstream(line_of_code: str) -> List[Token]:
     tokens: List[Token] = [t for t in tb if t is not None]
     return tokens
 
-def parser_tester(token_stream: List[Token], subparser_name: str) -> Node:
+def parser_tester(token_stream: List[Token], subparser_name: str, debug: bool = False) -> Node:
+    if debug:
+        import pdb
+        pdb.set_trace()
     parser: JackParser = JackParser(token_stream)
     target_method: Callable = getattr(parser, subparser_name)
     result: Node = target_method()

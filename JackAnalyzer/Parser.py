@@ -1,4 +1,4 @@
-from typing import List, Callable, Union
+from typing import List, Callable, Union, Optional
 
 from JackAnalyzer.Token import Token, Node
 from JackAnalyzer.ParserBase import ParserBase
@@ -138,11 +138,48 @@ class JackParser(ParserBase):
         return result
 
     def _subroutine_if(self) -> Node:
+        # if (expression) { statements } (else { statements })?
         result: Node = Node("ifStatement")
+        if_keyword: Token = self.expect_token("KEYWORD", "if")
+        result.add(if_keyword)
+        open_paren: Token = self.expect_token("SYMBOL", "(")
+        result.add(open_paren)
+        expression: Node = self.expression()
+        result.add(expression)
+        close_paren: Token = self.expect_token("SYMBOL", ")")
+        result.add(close_paren)
+        open_bracket: Token = self.expect_token("SYMBOL", "{")
+        result.add(open_bracket)
+        statements: Node = self.statements()
+        result.add(statements)
+
+        if self.top.type == "KEYWORD" and self.top.value == "else":
+            else_kw: Token = self.expect_token("KEYWORD", "else")
+            result.add(else_kw)
+            open_bracket_2: Token = self.expect_token("SYMBOL", "{")
+            result.add(open_bracket_2)
+            close_bracket_2: Token = self.expect_token("SYMBOL", "}")
+            result.add(close_bracket_2)
+
+        close_bracket: Token = self.expect_token("SYMBOL", "}")
+        result.add(close_bracket)
+
         return result 
 
     def _subroutine_while(self) -> Node:
         result: Node = Node("whileStatement")
+        while_keyword: Token = self.expect_token("KEYWORD", "while")
+        result.add(while_keyword)
+
+        open_paren: Token = self.expect_token("SYMBOL", "(")
+        result.add(open_paren)
+
+        expression: Node = self.expression()
+        result.add(expression)
+
+        open_bracket: Token = self.expect_token("SYMBOL", "{")
+        result.add(open_bracket)
+
         return result
 
     def _subroutine_do(self) -> Node:
@@ -151,6 +188,8 @@ class JackParser(ParserBase):
         result.add(do_kw)
         sub_call: List[Union[Token, Node]] = self.subroutine_call()
         result.add(sub_call)
+        semicolon: Token = self.expect_token("SYMBOL", ";")
+        result.add(semicolon)
 
         return result
 
@@ -225,7 +264,7 @@ class JackParser(ParserBase):
         result.add(semicolon)
         return result
 
-    def subroutine_body_statements(self: 'JackParser') -> Union[Node, None]:
+    def statements(self: 'JackParser') -> Union[Node, None]:
         valid_statements: dict = {
             "let": self._subroutine_let,
             "if": self._subroutine_if,
@@ -233,23 +272,14 @@ class JackParser(ParserBase):
             "do": self._subroutine_do,
             "return": self._subroutine_return,
         }
+        results: Node = Node("statements")
 
-        # NOTE: Remember that all calls to self.expect_token()
-        #       will either consume the token and move self.top
-        #       or raise a ParserError thereby halting the parse.
-        current_type: str = self.top.type
-        current_val: str =  self.top.value
-
-        if current_type == "KEYWORD" and current_val in valid_statements:
-            results: Node = Node("statements")
-            target: Callable = valid_statements[current_val]
+        while self.top.type == "KEYWORD" and self.top.value in ["if", "let", "do", "while", "return"]:
+            target: Callable = valid_statements[self.top.value]
             intermediate_result: Node = target()
             results.add(intermediate_result)
-            # NOTE: This seems iffy; revisit later
-            # NOTE: Should we recurse and let the subsequent call bail out? 
-            return self.subroutine_body_statements()
-        else:
-            return None 
+
+        return results
 
     def subroutine_body(self) -> Node:
         result: Node = Node("subroutineBody")
@@ -257,7 +287,7 @@ class JackParser(ParserBase):
         result.add(open_bracket)
         vardecs: Node = self.subroutine_body_var_dec()
         result.add(vardecs)
-        statements: Union[Node, None] = self.subroutine_body_statements()
+        statements: Union[Node, None] = self.statements()
         result.add(statements)
         
         return result
@@ -307,14 +337,12 @@ class JackParser(ParserBase):
     ################### <EXPRESSIONS> ################### 
     ################### <EXPRESSIONS> ################### 
     ################### <EXPRESSIONS> ################### 
-
-    # NOTE: needs to be expressionList -> expression -> term
-
     def _moar_expressions(self) -> List[Union[Token, Node]]:
+        # NOTE: I'm not sure that committing to the try-except
+        #       style of recursion is beneficial long-term
         try:
             if self.top.type == "SYMBOL" and self.top.value == ")":
                 return [] 
-
             else:
                 results: List[Union[Node, Token]] = []
                 expression: Node = self.expression()
@@ -329,8 +357,6 @@ class JackParser(ParserBase):
             return []
 
     def expression_list(self) -> Node:
-        # import pdb
-        # pdb.set_trace()
         result: Node = Node("expressionList")
         try:
             expressions: List[Union[Token, Node]] = self._moar_expressions()
