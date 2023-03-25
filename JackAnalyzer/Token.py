@@ -1,4 +1,5 @@
 from typing import Any, List, Union
+from xml.etree.ElementTree import Element, ElementTree
 
 KEYWORD_LIST: List[str] = [
     "class", "constructor", "function",
@@ -27,61 +28,39 @@ SYMBOL_LIST: List[str] = [
 #       Nodes - return a list of xml tags, wrapped in a "container" of some kind
 #       Why the lists? so I can simplify the outgoing logic, and just += them together to create
 #       a single list and then "".join() (or whatever) to produce the final output
-class Token:
-    def __init__(self, token_type: str, raw_value: Any, line_no: int, column_no: int, idx: int):
+class Token(Element):
+    def __init__(self, token_type: str, raw_value: Any, line_no: int, column_no: int, idx: int, *args, **kwargs):
+
+        if token_type == "INTEGER_CONSTANT":
+            super().__init__("integerConstant", *args, **kwargs)
+        elif token_type == "STRING_CONSTANT":
+            super().__init__("stringConstant", *args, **kwargs)
+        else:
+            super().__init__(token_type.lower(), *args, **kwargs)
+
         self.type: str = token_type
         self.value: Any = raw_value
-        self.line_no = line_no
-        self.column_no = column_no
-        self.idx = idx
+        self.text: Any = raw_value
+        self.line_no: int = line_no
+        self.column_no: int = column_no
+        self.idx: int = idx
 
     def __repr__(self):
         # return f"<{self.type} - {self.value} @ line {self.line_no}, col {self.column_no}, pos {self.idx}>".encode("unicode_escape").decode("utf-8")
         return f"< '{self.value}' ({self.type}, {self.line_no} {self.column_no} {self.idx})>".encode("unicode_escape").decode("utf-8")
 
-
-    def xml(self):
-        # small hack to make the output conform to what the class
-        # requries of it.
-        if self.type == "INTEGER_CONSTANT":
-            tag: str = "integerConstant"
-        elif self.type == "STRING_CONSTANT":
-            tag = "stringConstant"
-        else:
-            tag: str = self.type.lower()
-
-        template: str = f"<{tag}>{self.value}</{tag}>"
-        return [template]
-    
-    def __call__(self):
-        return self.xml()
-
-class Node:
+class Node(Element):
     def __init__(self, nodetype: str):
+        super().__init__(nodetype)
         self.type: str = nodetype
         self._children: List[Union[Token, Node]] = []
 
     def __repr__(self):
         return f"<Node object of type {self.type}>"
-
-    def add(self, thing: Any):
-        if isinstance(thing, list):
-            for x in thing:
-                self._children.append(x)
-        else:
-            self._children.append(thing)
-
-    def xml(self):
-        template: List[str] = []
-        open_tag: str = f"<{self.type}>"
-        close_tag: str = f"</{self.type}>"
-        template.append(open_tag)
-
-        for child in self._children:
-            template.append(child())
-
-        template.append(close_tag)
-        return template
     
-    def __call__(self):
-        return self.xml()
+    def add(self, thing: Any):
+        # maintained for legacy reasons
+        try:
+            self.append(thing)
+        except TypeError:
+            self.extend(thing)

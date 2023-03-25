@@ -1,4 +1,4 @@
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Iterator
 import re
 from JackAnalyzer.Token import Token
 
@@ -47,7 +47,7 @@ class TokenBuilder():
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> Iterator:
         if self._pos >= len(self._buf):
             raise StopIteration()
         else:

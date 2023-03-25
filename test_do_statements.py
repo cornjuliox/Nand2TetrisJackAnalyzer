@@ -1,6 +1,7 @@
 from typing import List
-from JackAnalyzer.Token import Token, Node
+from xml.etree.ElementTree import indent, dump
 
+from JackAnalyzer.Token import Token, Node
 from utils import make_tokenstream, parser_tester
 
 if __name__ == "__main__":
@@ -14,6 +15,7 @@ if __name__ == "__main__":
 
     for ts in do_tokenstreams:
         res = parser_tester(ts, "_subroutine_do")
-        print(res.xml())
+        indent(res)
+        dump(res)
         assert res
     print("finished")

@@ -14,5 +14,4 @@ if __name__ == "__main__":
     for ts in expression_tokenstreams:
         print(f"working on: {ts}")
         res: Node = parser_tester(ts, "expression")
-        print(f"res: {res.xml()}")
         assert res

@@ -21,8 +21,8 @@ class ParserBase():
         return self._tokens.pop(0)
 
     def expect_token(self, token_type: str, val: Union[str, None] = None, mult: Union[List[str], None] = None):
-
         print(f"current token stream -> {self._tokens}")
+        print()
         try:
             next_token_type = self.top.type
         except IndexError:

@@ -150,7 +150,7 @@ class JackParser(ParserBase):
         result.add(close_paren)
         open_bracket: Token = self.expect_token("SYMBOL", "{")
         result.add(open_bracket)
-        statements: Node = self.statements()
+        statements: Optional[Node] = self.statements()
         result.add(statements)
 
         if self.top.type == "KEYWORD" and self.top.value == "else":
@@ -177,8 +177,17 @@ class JackParser(ParserBase):
         expression: Node = self.expression()
         result.add(expression)
 
+        close_paren: Token = self.expect_token("SYMBOL", ")")
+        result.add(close_paren)
+
         open_bracket: Token = self.expect_token("SYMBOL", "{")
         result.add(open_bracket)
+
+        statements: Optional[Node] = self.statements()
+        result.add(statements)
+
+        close_bracket: Token = self.expect_token("SYMBOL", "}")
+        result.add(close_bracket)
 
         return result
 
@@ -195,6 +204,16 @@ class JackParser(ParserBase):
 
     def _subroutine_return(self) -> Node:
         result: Node = Node("returnStatement")
+        return_kw: Token = self.expect_token("KEYWORD", "return")
+        result.add(return_kw)
+
+        if self.top.type != "SYMBOL" and self.top.value != ";":
+            expression: Node = self.expression()
+            result.add(expression)
+        else:
+            semicolon: Token = self.expect_token("SYMBOL", ";")
+            result.add(semicolon)
+
         return result
 
     def subroutine_dec(self) -> Node:
@@ -234,7 +253,7 @@ class JackParser(ParserBase):
             return result
 
         # NOTE: I hope type_varnames and result are flat.
-        result.add(type_varnames)
+        result.extend(type_varnames)
         return result
 
     def subroutine_body_var_dec(self) -> Node:
@@ -264,7 +283,7 @@ class JackParser(ParserBase):
         result.add(semicolon)
         return result
 
-    def statements(self: 'JackParser') -> Union[Node, None]:
+    def statements(self: 'JackParser') -> Node:
         valid_statements: dict = {
             "let": self._subroutine_let,
             "if": self._subroutine_if,
@@ -274,10 +293,13 @@ class JackParser(ParserBase):
         }
         results: Node = Node("statements")
 
-        while self.top.type == "KEYWORD" and self.top.value in ["if", "let", "do", "while", "return"]:
-            target: Callable = valid_statements[self.top.value]
-            intermediate_result: Node = target()
-            results.add(intermediate_result)
+        try:
+            while self.top.type == "KEYWORD" and self.top.value in ["if", "let", "do", "while", "return"]:
+                target: Callable = valid_statements[self.top.value]
+                intermediate_result: Node = target()
+                results.add(intermediate_result)
+        except IndexError:
+            pass
 
         return results
 
@@ -318,17 +340,18 @@ class JackParser(ParserBase):
         open_paren = self.expect_token("SYMBOL", "(")
         results.append(open_paren)
         # NOTE: empty expressions shouldn't appear at all
-        if self.top.type == "SYMBOL" and self.top.value == ")":
-            # NOTE: bail immediately if you see the ')' next
-            close_paren = self.expect_token("SYMBOL", ")")
-            results.append(close_paren)
-            return results
-        else:
-            expression_list = self.expression_list()
-            results.append(expression_list)
-            close_paren = self.expect_token("SYMBOL", ")")
-            results.append(close_paren)
-            return results
+        # # NOTE: 
+        # if self.top.type == "SYMBOL" and self.top.value == ")":
+        #     # NOTE: bail immediately if you see the ')' next
+        #     close_paren = self.expect_token("SYMBOL", ")")
+        #     results.append(close_paren)
+        #     return results
+        # else:
+        expression_list = self.expression_list()
+        results.append(expression_list)
+        close_paren = self.expect_token("SYMBOL", ")")
+        results.append(close_paren)
+        return results
 
     ################### </SUBROUTINE SHIT> ################### 
     ################### </SUBROUTINE SHIT> ################### 
@@ -358,10 +381,12 @@ class JackParser(ParserBase):
 
     def expression_list(self) -> Node:
         result: Node = Node("expressionList")
+
         try:
             expressions: List[Union[Token, Node]] = self._moar_expressions()
             result.add(expressions)
         except ParserError:
+            result.text = " "
             return result
 
         return result
@@ -461,8 +486,6 @@ class JackParser(ParserBase):
 
         return result
     
-    def _op_term(self):
-        pass
 
     ################### </EXPRESSIONS> ################### 
     ################### </EXPRESSIONS> ################### 
@@ -476,16 +499,33 @@ class JackParser(ParserBase):
         return self.klass()
 
     # NOTE: This is the entrypoint for the class 
-    def klass(self):
+    def klass(self) -> Node:
         result: Node = Node("class")
 
         class_kw: Token = self.expect_token("KEYWORD", "class")
         result.add(class_kw)
 
+        class_name: Token = self.expect_token("IDENTIFIER")
+        result.add(class_name)
+
         open_bracket: Token = self.expect_token("SYMBOL", "{")
         result.add(open_bracket)
 
-    def klass_var_dec(self):
+        class_var_decs: Node = self.klass_var_dec()
+        result.add(class_var_decs)
+
+        # subroutine dec function isn't "recursive"?
+        # i need to do the recursion here.
+        while self.top.type == "KEYWORD" and self.top.value in ["function", "constructor", "method"]:
+            subroutine_dec: Node = self.subroutine_dec()
+            result.add(subroutine_dec)
+        
+        close_bracket: Token = self.expect_token("SYMBOL", "}")
+        result.add(close_bracket)
+        
+        return result
+
+    def klass_var_dec(self) -> Node:
         result: Node = Node("classVarDec")
         static_field: Token = self.expect_token("KEYWORD", mult=["static", "field"])
         result.add(static_field)
