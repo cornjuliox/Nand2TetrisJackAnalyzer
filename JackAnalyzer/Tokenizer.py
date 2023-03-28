@@ -13,7 +13,7 @@ RULES: List[Tuple] = [
     ("\d+", "INTEGER_CONSTANT"),
     (r"\".*\"", "STRING_CONSTANT"),
     ("[\{\}\(\)\[\]\.\,\;\+\-\*\&\|\<\>\=\~]", "SYMBOL"),
-    ("(?<![/\*\d\w])/(?![/\*\d\w])", "TRUE_DIV"),
+    ("(?<![/\*\d\w])/(?![/\*\d\w])", "SYMBOL"),
 ]
 
 class LexerError(Exception):

@@ -63,4 +63,9 @@ class Node(Element):
         try:
             self.append(thing)
         except TypeError:
+            pass
+
+        try:
             self.extend(thing)
+        except TypeError:
+            return

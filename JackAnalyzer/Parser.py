@@ -153,16 +153,18 @@ class JackParser(ParserBase):
         statements: Optional[Node] = self.statements()
         result.add(statements)
 
+        close_bracket: Token = self.expect_token("SYMBOL", "}")
+        result.add(close_bracket)
+
         if self.top.type == "KEYWORD" and self.top.value == "else":
             else_kw: Token = self.expect_token("KEYWORD", "else")
             result.add(else_kw)
             open_bracket_2: Token = self.expect_token("SYMBOL", "{")
             result.add(open_bracket_2)
+            statements2: Optional[Node] = self.statements()
+            result.add(statements2)
             close_bracket_2: Token = self.expect_token("SYMBOL", "}")
             result.add(close_bracket_2)
-
-        close_bracket: Token = self.expect_token("SYMBOL", "}")
-        result.add(close_bracket)
 
         return result 
 
@@ -256,12 +258,9 @@ class JackParser(ParserBase):
         result.extend(type_varnames)
         return result
 
-    def subroutine_body_var_dec(self) -> Node:
+    def subroutine_body_var_dec(self) -> Union[Node, None]:
         """ 
         Matches the 'varDec' rule, and should be written in output as <varDec></varDec>. 
-
-        Each `var` would generate a ParserContainer.
-        `var int a, b` -> x1 ParserContainer,
         """
         # NOTE: The following needs to be enforced in the subroutineBody() method.
         #       Needs to be called once per 'var'. Such that the following:
@@ -269,18 +268,22 @@ class JackParser(ParserBase):
         #       var int a, b;
         #       var int b, c;
         #       ```
-        result: Node = Node("classVarDec")
-        var_kw: Token = self.expect_token("KEYWORD", "var")
-        var_type_identifier: Token = self.match_type()
-        var_names: List[Token] = self._match_recursive_varname()
-        semicolon: Token = self.expect_token("SYMBOL", ";")
-        result.add(var_kw)
-        result.add(var_type_identifier)
+        result: Node = Node("varDec")
+        # NOTE: Remember that vardec 0 or more. 
+        # NOTE: <this> needs to be redone
+        if self.top.type == "KEYWORD" and self.top.value == "var":
+            var_kw: Token = self.expect_token("KEYWORD", "var")
+            var_type: Token = self.match_type()
+            var_names: List[Token] = self._match_recursive_varname()
+            semicolon: Token = self.expect_token("SYMBOL", ";")
 
-        for res in var_names:
-            result.add(res)
+            result.add(var_kw)
+            result.add(var_type)
+            result.add(var_names)
+            result.add(semicolon)
+        else:
+            return None
 
-        result.add(semicolon)
         return result
 
     def statements(self: 'JackParser') -> Node:
@@ -307,10 +310,17 @@ class JackParser(ParserBase):
         result: Node = Node("subroutineBody")
         open_bracket: Token = self.expect_token("SYMBOL", "{")
         result.add(open_bracket)
-        vardecs: Node = self.subroutine_body_var_dec()
-        result.add(vardecs)
+        while True:
+            if self.top.type == "KEYWORD" and self.top.value == "var":
+                vardecs: Optional[Node] = self.subroutine_body_var_dec()
+                result.add(vardecs)
+            else:
+                break
         statements: Union[Node, None] = self.statements()
         result.add(statements)
+
+        close_bracket: Token = self.expect_token("SYMBOL", "}")
+        result.add(close_bracket)
         
         return result
     
