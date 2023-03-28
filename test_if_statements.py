@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     for ts in if_tokenstreams:
         print(f"working on: {ts}")
-        res: Node = parser_tester(ts, "_subroutine_if")
+        res: Node = parser_tester(ts, "_subroutine_if", debug=True)
         indent(res)
         dump(res)
         assert res

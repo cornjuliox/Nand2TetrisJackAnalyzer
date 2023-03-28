@@ -53,10 +53,13 @@ class Node(Element):
     def __init__(self, nodetype: str):
         super().__init__(nodetype)
         self.type: str = nodetype
-        self._children: List[Union[Token, Node]] = []
 
     def __repr__(self):
         return f"<Node object of type {self.type}>"
+
+    @property 
+    def children(self):
+        return self._children
     
     def add(self, thing: Any):
         # maintained for legacy reasons

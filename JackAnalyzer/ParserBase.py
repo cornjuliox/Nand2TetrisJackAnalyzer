@@ -1,5 +1,5 @@
 from typing import List, Union
-
+from xml.etree.ElementTree import Element
 from JackAnalyzer.Token import Token
 from JackAnalyzer.ParserError import ParserError
 
@@ -20,11 +20,9 @@ class ParserBase():
     def scan_token(self):
         return self._tokens.pop(0)
 
-    def expect_token(self, token_type: str, val: Union[str, None] = None, mult: Union[List[str], None] = None):
-        print(f"current token stream -> {self._tokens}")
-        print()
+    def expect_token(self, token_type: str, val: Union[str, None] = None, mult: Union[List[str], None] = None) -> Element:
         try:
-            next_token_type = self.top.type
+            next_token_type = self.top.tag
         except IndexError:
             raise ParserError(None, f"Expected type {token_type} - '{val}', but there are no tokens left to parse!", self._tokens)
 
@@ -32,7 +30,7 @@ class ParserBase():
         expected_token_type = token_type
 
         if val:
-            next_token_val = self.top.value
+            next_token_val = self.top.text
             expected_token_val = val
             try:
                 assert expected_token_val == next_token_val
@@ -41,7 +39,7 @@ class ParserBase():
                 raise ParserError(self.top, err_val, self._tokens)
 
         if mult:
-            next_token_val = self.top.value
+            next_token_val = self.top.text
             err_mult = f"Expected value to be one of {mult}, but got {next_token_val} instead!"
             if next_token_val in mult:
                 return self.scan_token()

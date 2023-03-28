@@ -6,7 +6,7 @@ from pathlib import Path
 from JackAnalyzer.Tokenizer import TokenBuilder, RULES
 from JackAnalyzer.Token import KEYWORD_LIST
 from JackAnalyzer.Writer import token_fucker, xml_fucker
-from JackAnalyzer.Parser import JackParser
+from JackAnalyzer.OldParser import JackParser
 
 if __name__ == "__main__":
     try:

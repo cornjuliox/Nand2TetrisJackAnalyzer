@@ -14,6 +14,8 @@ if __name__ == "__main__":
     do_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in sample_do]
 
     for ts in do_tokenstreams:
+        printer_friendly: List = [f"<{x.tag} :: '{x.text}'>" for x in ts]
+        print(printer_friendly)
         res = parser_tester(ts, "_subroutine_do")
         indent(res)
         dump(res)

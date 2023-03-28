@@ -2,6 +2,8 @@ from typing import List, Any, Tuple, Iterator
 import re
 from JackAnalyzer.Token import Token
 
+from xml.etree.ElementTree import Element
+
 # NOTE: Yes, this is ugly.
 #       No, I don't care.
 RULES: List[Tuple] = [
@@ -80,7 +82,17 @@ class TokenBuilder():
                     return None
 
                 # token: tuple = (token_type, matchobj.group(group), self._pos, self._line_no, self._column)
-                token: Token = Token(token_type, matchobj.group(group), self._line_no, self._column, self._pos)
+                if token_type == "INTEGER_CONSTANT":
+                    token_type = "integerConstant"
+                    token: Element = Element(token_type)
+                    token.text = matchobj.group(group)
+                if token_type == "STRING_CONSTANT":
+                    token_type = "stringConstant"
+                    token = Element(token_type)
+                    token.text = matchobj.group(group)
+                else:
+                    token = Element(token_type)
+                    token.text = matchobj.group(group)
                 self._pos = matchobj.end()
                 return token
 
