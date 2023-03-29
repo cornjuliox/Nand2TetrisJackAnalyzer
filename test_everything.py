@@ -23,6 +23,7 @@ from utils import parser_tester, make_tokenstream
         "i * (-j)",
         "j / (-2)",
         "i | j",
+        "someClass.someMethod() + anotherClass.anotherMethod()",
     ], "expression"),
     ([
         "true",

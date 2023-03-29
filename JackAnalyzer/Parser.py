@@ -6,6 +6,31 @@ from JackAnalyzer.ParserBase import ParserBase
 from JackAnalyzer.ParserError import ParserError
 
 class JackParser(ParserBase):
+    def _subroutine_do(self) -> Element:
+        result: Element = Element("doStatement")
+        do_kw: Element = self.expect_token("keyword", "do")
+        result.append(do_kw)
+        sub_call: List[Element] = self.subroutine_call()
+        result.extend(sub_call)
+        semicolon: Element = self.expect_token("symbol", ";")
+        result.append(semicolon)
+
+        return result
+    
+    def _subroutine_return(self) -> Element:
+        result: Element = Element("returnStatement")
+        return_kw: Element = self.expect_token("keyword", "return")
+        result.append(return_kw)
+
+        if self.top.tag != "symbol" and self.top.text != ";":
+            expression: Element = self.expression()
+            result.append(expression)
+        else:
+            semicolon: Element = self.expect_token("symbol", ";")
+            result.append(semicolon)
+
+        return result
+
     def _moar_expressions(self) -> List[Element]:
         # NOTE: I'm not sure that committing to the try-except
         #       style of recursion is beneficial long-term
@@ -26,50 +51,30 @@ class JackParser(ParserBase):
             return []
         
     def expression_list(self) -> Element:
-        def __grab_expression(self: JackParser) -> Element:
-            expr: Element = self.expression()
-            return expr
-
         result: Element = Element("expressionList")
-
-        # NOTE: Handles empty token stream
-        try:
-            _ = self.top
-        except IndexError:
-            return result
 
         # NOTE: Handles empty expression lists; i.e next character is ') '
         if self.top.tag == "symbol" and self.top.text == ")":
             return result
-
-        while True: 
-            expr: Element = __grab_expression(self)
+        
+        while True:
+            expr: Element = self.expression()
             result.append(expr)
 
+            # NOTE: If there's no comma after the first expression, then there's only
+            #       one expression, and the next token is a ')'
             try:
-                _ = self.top
+                comma: Element = self.expect_token("symbol", ",")
+                result.append(comma)
             except IndexError:
                 break
-
-            if self.top.tag != "symbol" and self.top.text != ",":
-                break
-
-            comma: Element = self.expect_token("symbol", ",")
-            result.append(comma)
+            except ParserError:
+                if self.top.tag == "symbol" and self.top.text == ")":
+                    break
+                else:
+                    raise
 
         return result
-
-    # def expression_list(self) -> Element:
-    #     result: Element = Element("expressionList")
-
-    #     try:
-    #         expressions: List[Element] = self._moar_expressions()
-    #         result.add(expressions)
-    #     except ParserError:
-    #         result.text = " "
-    #         return result
-
-    #     return result
 
     def subroutine_call(self) -> List[Element]:
         # there's two forms for this; either a simple `name(expressionList)`
@@ -146,7 +151,8 @@ class JackParser(ParserBase):
         
         def __handle_str_constant(self: JackParser):
             str_constant: Element = self._match_string_constant()
-            str_constant.text = str_constant.text.strip("\"")
+            if isinstance(str_constant, str):
+                str_constant.text = str_constant.text.strip("\"")
             return str_constant
         
         def __handle_keyword(self: JackParser):

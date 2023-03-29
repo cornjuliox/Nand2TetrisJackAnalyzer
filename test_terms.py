@@ -1,26 +1,28 @@
-from typing import List
+from typing import List, cast, Iterable
 from JackAnalyzer.Token import Token, Node
-from xml.etree.ElementTree import indent
+from xml.etree.ElementTree import indent, Element
 
 from utils import make_tokenstream, parser_tester, dump
 
 terms: List[str] = [
-    "\"simple string constant\"",
-    "Keyboard.readInt(\"HOW MANY NUMBERS? \")",
-    "Array.new(length)",
     "i",
     "-j",
     "false",
-    "1",
     "a[1]",
-    "a[2]"
+    "a[2]",
+    "1",
+    "Array.new(length)",
+    "\"simple string constant\"",
+    "Keyboard.readInt(\"HOW MANY NUMBERS? \")",
+    "Screen.drawRectangle(x, y, x + size, y + size)",
 ]
 
 if __name__ == "__main__":
-    term_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in terms] 
+    term_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in terms] 
 
     for ts in term_tokenstreams:
-        print(f"working on: {''.join([x.text for x in ts])}")
+        working_on: str = ''.join([cast(str, x.text) for x in cast(Iterable[Element], ts)])
+        print(f"working on: {working_on}")
         res: Node = parser_tester(ts, "term")
         indent(res)
         dump(res)

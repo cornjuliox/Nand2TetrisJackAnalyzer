@@ -24,7 +24,7 @@ class ParserBase():
         try:
             next_token_type = self.top.tag
         except IndexError:
-            raise ParserError(None, f"Expected type {token_type} - '{val}', but there are no tokens left to parse!", self._tokens)
+            raise
 
         err_type: str = f"Expected type {token_type}, but got {next_token_type} instead!"
         expected_token_type = token_type
