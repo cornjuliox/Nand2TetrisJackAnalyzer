@@ -1,8 +1,7 @@
-from typing import List
-from xml.etree.ElementTree import indent, dump
+from typing import List, Iterable, cast
+from xml.etree.ElementTree import Element, indent
 
-from JackAnalyzer.Token import Token, Node
-from utils import make_tokenstream, parser_tester
+from utils import make_tokenstream, parser_tester, dump
 
 if __name__ == "__main__":
     sample_let: list[str] = [
@@ -15,13 +14,15 @@ if __name__ == "__main__":
         "let i = i | j;",
     ]
 
-    let_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in sample_let] 
+    let_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_let] 
 
     for ts in let_tokenstreams:
-        print(f"working on: {ts}")
-        res: Node = parser_tester(ts, "_subroutine_let")
+        working_on: str = ' '.join([cast(str, x.text) for x in cast(Iterable[Element], ts)])
+        print(f"working on: {working_on}")
+        res: Element = parser_tester(ts, "_subroutine_let")
         indent(res)
         dump(res)
         assert res
+        print()
 
     print("finished")

@@ -6,6 +6,36 @@ from JackAnalyzer.ParserBase import ParserBase
 from JackAnalyzer.ParserError import ParserError
 
 class JackParser(ParserBase):
+    def _subroutine_let(self) -> Element:
+        result: Element = Element("letStatement")
+
+        let_kw: Element = self.expect_token("keyword", "let")
+        result.append(let_kw)
+
+        var_name: Element = self.expect_token("identifier")
+        result.append(var_name)
+
+        if self.top.tag == "symbol" and self.top.text == "[":
+            open_square: Element = self.expect_token("symbol", "[")
+            result.append(open_square)
+
+            inner_expression: Element = self.expression()
+            result.append(inner_expression)
+
+            close_square: Element = self.expect_token("symbol", "]")
+            result.append(close_square)
+
+        equals: Element = self.expect_token("symbol", "=")
+        result.append(equals)
+
+        expression: Element = self.expression()
+        result.append(expression)
+
+        semicolon: Element = self.expect_token("symbol", ";")
+        result.append(semicolon)
+
+        return result
+
     def _subroutine_do(self) -> Element:
         result: Element = Element("doStatement")
         do_kw: Element = self.expect_token("keyword", "do")
