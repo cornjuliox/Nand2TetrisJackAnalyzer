@@ -11,11 +11,11 @@ RULES: List[Tuple] = [
     ("/\*.+\*/", "STAR_COMMENT"),
     ("\\n|\\r", "NEWLINE"),
     (" ", "WHITESPACE"),
-    ("[a-zA-Z_]\w*", "IDENTIFIER"),
-    ("\d+", "INTEGER_CONSTANT"),
-    (r"\".*\"", "STRING_CONSTANT"),
-    ("[\{\}\(\)\[\]\.\,\;\+\-\*\&\|\<\>\=\~]", "SYMBOL"),
-    ("(?<![/\*\d\w])/(?![/\*\d\w])", "SYMBOL"),
+    ("[a-zA-Z_]\w*", "identifier"),
+    ("\d+", "integerConstant"),
+    (r"\".*\"", "stringConstant"),
+    ("[\{\}\(\)\[\]\.\,\;\+\-\*\&\|\<\>\=\~]", "symbol"),
+    ("(?<![/\*\d\w])/(?![/\*\d\w])", "symbol"),
 ]
 
 class LexerError(Exception):
@@ -66,10 +66,10 @@ class TokenBuilder():
                 # NOTE: There's a conflict between the regex that matches identifiers and
                 #       the one that matches keywords. This is how I've decided to resolve
                 #       it for now.
-                if token_type in ["IDENTIFIER"]:
+                if token_type in ["identifier"]:
                     contents: str = matchobj.group(group)
                     if contents in self._keyword_list:
-                        token_type = "KEYWORD"
+                        token_type = "keyword"
 
                 if token_type in ["NEWLINE"]:
                     self._line_start = matchobj.end()
@@ -96,4 +96,4 @@ class TokenBuilder():
                 self._pos = matchobj.end()
                 return token
 
-            raise LexerError(self._pos, self._buf[self._pos])
+            raise LexerError(self._line_no, self._pos, self._buf[self._pos])

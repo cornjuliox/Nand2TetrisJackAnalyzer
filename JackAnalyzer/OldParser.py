@@ -370,7 +370,7 @@ class JackParser(ParserBase):
     ################### <EXPRESSIONS> ################### 
     ################### <EXPRESSIONS> ################### 
     ################### <EXPRESSIONS> ################### 
-    def _moar_expressions(self) -> List[Union[Token, Node]]:
+    def _moar_expressions(self) -> List[Element]:
         # NOTE: I'm not sure that committing to the try-except
         #       style of recursion is beneficial long-term
         try:

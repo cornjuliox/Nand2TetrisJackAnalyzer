@@ -50,3 +50,40 @@ class ParserBase():
             return self.scan_token()
         else:
             raise ParserError(self.top, err_type, self._tokens)
+        
+    def _match_type(self) -> Element:
+        """ Matches the 'type' rule. """
+        try:
+            var_type: Element = self.expect_token("keyword", mult=["int", "char", "boolean"])
+        except ParserError:
+            var_type = self.expect_token("identifier")
+
+        return var_type
+
+    def _match_identifier(self) -> Element:
+        """ Matches either className, subroutineName, varName rules. """
+        identifier: Element = self.expect_token("identifier")
+        return identifier
+
+    def _match_op(self) -> Element:
+        op: Element = self.expect_token("symbol", mult=["+", "-", "*", "/", "&", "|", "<", ">", "="])
+        return op
+
+    def _match_unary_op(self) -> Element:
+        op: Element = self.expect_token("symbol", mult=["-", "~"])
+        return op
+
+    def _match_keyword_constant(self) -> Element:
+        kw_constant: Element = self.expect_token("keyword", mult=["true", "false", "null", "this"])
+        return kw_constant
+
+    def _match_integer_constant(self) -> Element:
+        int_constant: Element = self.expect_token("integerConstant")
+        # value should be between 0 - 32767
+        if int(int_constant.text) < 0 or int(int_constant.text) > 32767: 
+            raise ParserError(int_constant, "Integer range should be between 0..32767", self._tokens)
+        return int_constant
+
+    def _match_string_constant(self) -> Element:
+        str_constant: Element = self.expect_token("stringConstant")
+        return str_constant
