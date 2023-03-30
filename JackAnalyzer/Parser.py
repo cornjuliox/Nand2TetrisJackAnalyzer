@@ -6,6 +6,31 @@ from JackAnalyzer.ParserBase import ParserBase
 from JackAnalyzer.ParserError import ParserError
 
 class JackParser(ParserBase):
+    def _subroutine_while(self) -> Element:
+        result: Element = Element("whileStatement")
+        while_keyword: Element = self.expect_token("keyword", "while")
+        result.append(while_keyword)
+
+        open_paren: Element = self.expect_token("symbol", "(")
+        result.append(open_paren)
+
+        expression: Element = self.expression()
+        result.append(expression)
+
+        close_paren: Element = self.expect_token("symbol", ")")
+        result.append(close_paren)
+
+        open_bracket: Element = self.expect_token("symbol", "{")
+        result.append(open_bracket)
+
+        statements: Element = self.statements()
+        result.append(statements)
+
+        close_bracket: Element = self.expect_token("symbol", "}")
+        result.append(close_bracket)
+
+        return result
+
     def _subroutine_if(self) -> Element:
         # if (expression) { statements } (else { statements })?
         result: Element = Element("ifStatement")
@@ -132,7 +157,7 @@ class JackParser(ParserBase):
         valid_statements: dict = {
             "let": self._subroutine_let,
             "if": self._subroutine_if,
-            # "while": self._subroutine_while,
+            "while": self._subroutine_while,
             "do": self._subroutine_do,
             "return": self._subroutine_return,
         }
