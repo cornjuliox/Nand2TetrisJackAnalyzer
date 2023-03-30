@@ -1,11 +1,59 @@
 # NOTE: Lets try this again
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Optional
 from xml.etree.ElementTree import Element
 
 from JackAnalyzer.ParserBase import ParserBase
 from JackAnalyzer.ParserError import ParserError
 
 class JackParser(ParserBase):
+    def _subroutine_if(self) -> Element:
+        # if (expression) { statements } (else { statements })?
+        result: Element = Element("ifStatement")
+        if_keyword: Element = self.expect_token("keyword", "if")
+        result.append(if_keyword)
+        open_paren: Element = self.expect_token("symbol", "(")
+        result.append(open_paren)
+        expression: Element = self.expression()
+        result.append(expression)
+        close_paren: Element = self.expect_token("symbol", ")")
+        result.append(close_paren)
+        open_bracket: Element = self.expect_token("symbol", "{")
+        result.append(open_bracket)
+
+        # NOTE: 0 or more statements
+        while True:
+            if self.top.tag == "symbol" and self.top.text == "}":
+                break
+            statements: Element = self.statements()
+            result.append(statements)
+
+        close_bracket: Element = self.expect_token("symbol", "}")
+        result.append(close_bracket)
+
+        # NOTE: 0 or 1 'else' construct, with 0 or more statements
+        # NOTE: The 'try' block handles the case where there is no 'else'.
+        try:
+            if self.top.tag == "keyword" and self.top.text == "else":
+                else_kw: Element = self.expect_token("keyword", "else")
+                result.append(else_kw)
+                open_bracket_2: Element = self.expect_token("symbol", "{")
+                result.append(open_bracket_2)
+                # while self.top.tag != 'symbol' and self.top.text != '}':
+                #     statements2: Element = self.statements()
+                #     result.append(statements2)
+                while True:
+                    if self.top.tag == "symbol" and self.top.text == "}":
+                        break
+                    statements2: Element = self.statements()
+                    result.append(statements2)
+
+                close_bracket_2: Element = self.expect_token("symbol", "}")
+                result.append(close_bracket_2)
+        except IndexError:
+            pass
+
+        return result 
+
     def _subroutine_let(self) -> Element:
         result: Element = Element("letStatement")
 
@@ -79,6 +127,26 @@ class JackParser(ParserBase):
                     return results
         except IndexError:
             return []
+        
+    def statements(self: 'JackParser') -> Element:
+        valid_statements: dict = {
+            "let": self._subroutine_let,
+            "if": self._subroutine_if,
+            # "while": self._subroutine_while,
+            "do": self._subroutine_do,
+            "return": self._subroutine_return,
+        }
+        results: Element = Element("statements")
+
+        try:
+            while self.top.tag == "keyword" and self.top.text in ["if", "let", "do", "while", "return"]:
+                target: Callable = valid_statements[self.top.text]
+                intermediate_result: Element = target()
+                results.append(intermediate_result)
+        except IndexError:
+            pass
+
+        return results        
         
     def expression_list(self) -> Element:
         result: Element = Element("expressionList")
