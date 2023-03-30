@@ -1,7 +1,6 @@
-from typing import List
-from xml.etree.ElementTree import indent, dump
+from typing import List, Iterable, cast
+from xml.etree.ElementTree import indent, dump, Element
 
-from JackAnalyzer.Token import Token, Node
 from utils import make_tokenstream, parser_tester
 
 if __name__ == "__main__":
@@ -37,9 +36,11 @@ if __name__ == "__main__":
         }
         """
     ]
-    sample_class_dec_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in sample_class_dec]
+    sample_class_dec_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_class_dec]
 
     for ts in sample_class_dec_tokenstreams:
+        working_on: str = ''.join([cast(str, x.text) for x in cast(Iterable[Element], ts)])
+        print(f"working on: {working_on}")
         res = parser_tester(ts, "klass")
         indent(res)
         dump(res)

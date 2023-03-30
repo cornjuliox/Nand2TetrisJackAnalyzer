@@ -505,3 +505,31 @@ class JackParser(ParserBase):
         result.append(semicolon)
 
         return result
+    
+    # NOTE: This is the entrypoint for the class 
+    def klass(self) -> Element:
+        result: Element = Element("class")
+
+        class_kw: Element = self.expect_token("keyword", "class")
+        result.append(class_kw)
+
+        class_name: Element = self.expect_token("identifier")
+        result.append(class_name)
+
+        open_bracket: Element = self.expect_token("symbol", "{")
+        result.append(open_bracket)
+
+        class_var_decs: Element = self.klass_var_dec()
+        result.append(class_var_decs)
+
+        # subroutine dec function isn't "recursive"?
+        # i need to do the recursion here.
+        while self.top.tag == "keyword" and self.top.text in ["function", "constructor", "method"]:
+            subroutine_dec: Element = self.subroutine_dec()
+            result.append(subroutine_dec)
+        
+        close_bracket: Element = self.expect_token("symbol", "}")
+        result.append(close_bracket)
+
+        return result
+        
