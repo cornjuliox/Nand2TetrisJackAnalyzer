@@ -1,7 +1,6 @@
 from typing import List
-from xml.etree.ElementTree import indent
+from xml.etree.ElementTree import indent, Element
 
-from JackAnalyzer.Token import Token, Node
 from utils import make_tokenstream, parser_tester, dump
 
 if __name__ == "__main__":
@@ -11,7 +10,7 @@ if __name__ == "__main__":
         "var Array a;"
 
     ]
-    sample_individual_body_var_dec_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in sample_individual_body_var_dec]
+    sample_individual_body_var_dec_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_individual_body_var_dec]
 
     for ts in sample_individual_body_var_dec_tokenstreams:
         # NOTE: Each line should be its own <vardec></vardec>

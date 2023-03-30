@@ -4,8 +4,8 @@ from JackAnalyzer.Token import Token
 from JackAnalyzer.ParserError import ParserError
 
 class ParserBase():
-    def __init__(self, tokens: List[Token]):
-        self._tokens: List[Token] = tokens
+    def __init__(self, tokens: List[Element]):
+        self._tokens: List[Element] = tokens
 
     @property
     def top(self):
@@ -80,8 +80,12 @@ class ParserBase():
     def _match_integer_constant(self) -> Element:
         int_constant: Element = self.expect_token("integerConstant")
         # value should be between 0 - 32767
-        if int(int_constant.text) < 0 or int(int_constant.text) > 32767: 
-            raise ParserError(int_constant, "Integer range should be between 0..32767", self._tokens)
+        # NOTE: Because Element.text is Optional[str]
+        #       I need to force a type check here
+        #       so that mypy doesn't complain
+        if isinstance(int_constant.text, str):
+            if int(int_constant.text) < 0 or int(int_constant.text) > 32767: 
+                raise ParserError(int_constant, "Integer range should be between 0..32767", self._tokens)
         return int_constant
 
     def _match_string_constant(self) -> Element:
