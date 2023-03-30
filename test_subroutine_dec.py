@@ -1,37 +1,36 @@
-from typing import List
-from xml.etree.ElementTree import indent
+from typing import List, Iterable, cast
+from xml.etree.ElementTree import indent, Element
 
-from JackAnalyzer.Token import Token, Node
 from utils import make_tokenstream, parser_tester, dump
 
 if __name__ == "__main__":
     sample_subroutine_dec: list[str] = [
-        # """ 
-        # method void moveSquare() {
-        #     if (direction = 1) { do square.moveUp(); }
-        #     if (direction = 2) { do square.moveDown(); }
-        #     if (direction = 3) { do square.moveLeft(); }
-        #     if (direction = 4) { do square.moveRight(); }
-        #     do Sys.wait(5);  // delays the next movement
-        #     return;
-        # }
-        # """,
-        # """
-        # method void dispose() {
-        #     do square.dispose();
-        #     do Memory.deAlloc(this);
-        #     return;
-        # }
-        # """,
-        # """
-        # function void main() {
-        #     var SquareGame game;
-        #     let game = SquareGame.new();
-        #     do game.run();
-        #     do game.dispose();
-        #     return;
-        # }
-        # """,
+        """ 
+        method void moveSquare() {
+            if (direction = 1) { do square.moveUp(); }
+            if (direction = 2) { do square.moveDown(); }
+            if (direction = 3) { do square.moveLeft(); }
+            if (direction = 4) { do square.moveRight(); }
+            do Sys.wait(5);  // delays the next movement
+            return;
+        }
+        """,
+        """
+        method void dispose() {
+            do square.dispose();
+            do Memory.deAlloc(this);
+            return;
+        }
+        """,
+        """
+        function void main() {
+            var SquareGame game;
+            let game = SquareGame.new();
+            do game.run();
+            do game.dispose();
+            return;
+        }
+        """,
         """
         function void more() {  // Added to test Jack syntax that is not used in
             var int i, j;       // the Square files.
@@ -51,9 +50,11 @@ if __name__ == "__main__":
         }
         """,
     ]
-    sample_subroutine_dec_tokenstreams: List[List[Token]] = [make_tokenstream(x) for x in sample_subroutine_dec]
+    sample_subroutine_dec_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_subroutine_dec]
 
     for ts in sample_subroutine_dec_tokenstreams:
+        working_on: str = ''.join([cast(str, x.text) for x in cast(Iterable[Element], ts)])
+        print(f"working on: {working_on}")
         res = parser_tester(ts, "subroutine_dec")
         indent(res)
         dump(res)

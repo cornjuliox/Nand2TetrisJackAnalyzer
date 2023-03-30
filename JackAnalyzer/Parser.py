@@ -6,6 +6,64 @@ from JackAnalyzer.ParserBase import ParserBase
 from JackAnalyzer.ParserError import ParserError
 
 class JackParser(ParserBase):
+    def _match_recursive_varname(self) -> List[Element]:
+        """ 
+        Helper function to match 'varName (, varName)*' clusters, recursively if needed. 
+
+        Used in the varDec rule, and the classVarDec rule. Semicolon needs to be matched outside
+        this rule.
+
+        Results should ideally be unpacked and stored in a container to prevent nesting. 
+        """
+        results: List[Element] = []
+        var_identifier = self._match_identifier()
+        results.append(var_identifier)
+        try:
+            comma: Element = self.expect_token("symbol", ",")
+            results.append(comma)
+            return results + self._match_recursive_varname()
+        except ParserError:
+            return results
+        
+    def _match_recursive_type_varname(self) -> Union[List, List[Element]]:
+        """
+        Helper function to match 'type varName (, type varName)*' clusters.
+
+        Used in the parameterList rule.
+        """
+        # quick bailout - parameter lists can be EMPTY!
+        next_token: Element = self.top
+        if next_token.tag == "SYMBOL" and next_token.text == ")":
+            return [] 
+        else:
+            results: List[Element] = []
+            var_type: Element = self._match_type()
+            var_identifier: Element = self._match_identifier()
+            results.append(var_type)
+            results.append(var_identifier)
+            try:
+                comma: Element = self.expect_token("symbol", ",")
+                results.append(comma)
+                return results + self._match_recursive_type_varname()
+            except ParserError:
+                return results
+
+
+    def subroutine_parameter_list(self) -> Element:
+        """ Matches the parameterList rule. """
+        result: Element = Element("parameterList")
+
+        # NOTE: remember that a function doesn't always need parameters.
+        #       and that rule is enforced OUTSIDE the recursive_type_varname() command.
+        try:
+            type_varnames: List[Element] = self._match_recursive_type_varname()
+        except ParserError:
+            return result
+
+        # NOTE: I hope type_varnames and result are flat.
+        result.extend(type_varnames)
+        return result
+
     def _subroutine_while(self) -> Element:
         result: Element = Element("whileStatement")
         while_keyword: Element = self.expect_token("keyword", "while")
@@ -152,6 +210,78 @@ class JackParser(ParserBase):
                     return results
         except IndexError:
             return []
+        
+    def subroutine_dec(self) -> Element:
+        """ Matches the subroutineDec rule. """
+        # NOTE: Subroutine body is nested INSIDE this
+        result: Element = Element("subroutineDec")
+        subroutine_type: Element = self.expect_token("keyword", mult=["constructor", "function", "method"])
+        result.append(subroutine_type)
+
+        try:
+            subroutine_datatype: Element = self.expect_token("keyword", "void")
+        except ParserError:
+            subroutine_datatype = self._match_identifier()
+
+        result.append(subroutine_datatype)
+        subroutine_name: Element = self._match_identifier()
+        result.append(subroutine_name)
+        subroutine_parameter_list_open: Element = self.expect_token("symbol", "(")
+        result.append(subroutine_parameter_list_open)
+        subroutine_parameter_list: Element = self.subroutine_parameter_list()
+        result.append(subroutine_parameter_list)
+        subroutine_parameter_list_close: Element = self.expect_token("symbol", ")")
+        result.append(subroutine_parameter_list_close)
+        subroutine_body: Element = self.subroutine_body()
+        result.append(subroutine_body)
+        return result
+
+    def subroutine_body(self) -> Element:
+        result: Element = Element("subroutineBody")
+        open_bracket: Element = self.expect_token("symbol", "{")
+        result.append(open_bracket)
+        while True:
+            if self.top.tag == "keyword" and self.top.text == "var":
+                vardecs: Union[Element, None] = self.subroutine_body_var_dec()
+                if isinstance(vardecs, Element):
+                    result.append(vardecs)
+            else:
+                break
+        statements: Element = self.statements()
+        result.append(statements)
+
+        close_bracket: Element = self.expect_token("symbol", "}")
+        result.append(close_bracket)
+        
+        return result
+
+    def subroutine_body_var_dec(self) -> Union[Element, None]:
+        """ 
+        Matches the 'varDec' rule, and should be written in output as <varDec></varDec>. 
+        """
+        # NOTE: The following needs to be enforced in the subroutineBody() method.
+        #       Needs to be called once per 'var'. Such that the following:
+        #       ```
+        #       var int a, b;
+        #       var int b, c;
+        #       ```
+        result: Element = Element("varDec")
+        # NOTE: Remember that vardec 0 or more. 
+        # NOTE: <this> needs to be redone
+        if self.top.tag == "keyword" and self.top.text == "var":
+            var_kw: Element = self.expect_token("keyword", "var")
+            var_type: Element = self._match_type()
+            var_names: List[Element] = self._match_recursive_varname()
+            semicolon: Element = self.expect_token("symbol", ";")
+
+            result.append(var_kw)
+            result.append(var_type)
+            result.extend(var_names)
+            result.append(semicolon)
+        else:
+            return None
+
+        return result
         
     def statements(self: 'JackParser') -> Element:
         valid_statements: dict = {
