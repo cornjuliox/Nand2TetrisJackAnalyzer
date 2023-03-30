@@ -489,3 +489,19 @@ class JackParser(ParserBase):
             result.extend(Element_Element)
 
         return result
+    
+    def klass_var_dec(self) -> Element:
+        result: Element = Element("classVarDec")
+        static_field: Element = self.expect_token("keyword", mult=["static", "field"])
+        result.append(static_field)
+
+        var_type: Element = self._match_type()
+        result.append(var_type)
+
+        var_name: List[Element] = self._match_recursive_varname()
+        result.extend(var_name)
+
+        semicolon: Element = self.expect_token("symbol", ";")
+        result.append(semicolon)
+
+        return result
