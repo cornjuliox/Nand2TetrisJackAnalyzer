@@ -1,5 +1,4 @@
 from typing import List, cast, Iterable
-from JackAnalyzer.Token import Token, Node
 from xml.etree.ElementTree import indent, Element
 
 from utils import make_tokenstream, parser_tester, dump
@@ -23,7 +22,7 @@ if __name__ == "__main__":
     for ts in term_tokenstreams:
         working_on: str = ''.join([cast(str, x.text) for x in cast(Iterable[Element], ts)])
         print(f"working on: {working_on}")
-        res: Node = parser_tester(ts, "term")
+        res: Element = parser_tester(ts, "term")
         indent(res)
         dump(res)
         assert res

@@ -1,8 +1,8 @@
-from typing import List, Any, Tuple, Iterator
-import re
-from JackAnalyzer.Token import Token
-
+from typing import List, Tuple, Iterator, Optional
 from xml.etree.ElementTree import Element
+from re import Match
+import re
+
 
 # NOTE: Yes, this is ugly.
 #       No, I don't care.
@@ -11,6 +11,7 @@ RULES: List[Tuple] = [
     ("/\*.+\*/", "STAR_COMMENT"),
     ("\\n|\\r", "NEWLINE"),
     (" ", "WHITESPACE"),
+    ("\t", "WHITESPACE"),
     ("[a-zA-Z_]\w*", "identifier"),
     ("\d+", "integerConstant"),
     (r"\".*\"", "stringConstant"),
@@ -53,9 +54,9 @@ class TokenBuilder():
         if self._pos >= len(self._buf):
             raise StopIteration()
         else:
-            matchobj: re.Match = self.re_obj.match(self._buf, self._pos)
+            matchobj: Optional[Match[str]] = self.re_obj.match(self._buf, self._pos)
             if matchobj:
-                group: str = matchobj.lastgroup
+                group: Optional[str] = matchobj.lastgroup
                 token_type: str = self.group_map[group]
                 self._column = matchobj.start() - self._line_start
 

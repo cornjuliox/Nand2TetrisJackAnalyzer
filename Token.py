@@ -1,5 +1,5 @@
-from typing import Any, List, Union
-from xml.etree.ElementTree import Element, ElementTree
+from typing import Any, List
+from xml.etree.ElementTree import Element
 
 KEYWORD_LIST: List[str] = [
     "class", "constructor", "function",

@@ -4,6 +4,8 @@ from xml.etree.ElementTree import indent, Element
 from utils import make_tokenstream, parser_tester, dump
 
 if __name__ == "__main__":
+    # NOTE: (<, >, ", and &) can't be printed as-is to XML 
+    # NOTE: This should already be handled by the XML module
     sample_expressions: List[str] = [
         "null",
         "-1",
@@ -12,6 +14,9 @@ if __name__ == "__main__":
         "i * (-j)",
         "j / (-2)",
         "i | j",
+        "i < j",
+        "i > j",
+        "i & j",
         "someClass.someMethod() + anotherClass.anotherMethod()"
     ]
     expression_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_expressions] 

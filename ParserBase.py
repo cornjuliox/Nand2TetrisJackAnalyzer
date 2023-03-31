@@ -1,7 +1,6 @@
 from typing import List, Union
 from xml.etree.ElementTree import Element
-from JackAnalyzer.Token import Token
-from JackAnalyzer.ParserError import ParserError
+from ParserError import ParserError
 
 class ParserBase():
     def __init__(self, tokens: List[Element]):

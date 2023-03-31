@@ -2,8 +2,8 @@
 from typing import Union, List, Callable, Optional
 from xml.etree.ElementTree import Element
 
-from JackAnalyzer.ParserBase import ParserBase
-from JackAnalyzer.ParserError import ParserError
+from ParserBase import ParserBase
+from ParserError import ParserError
 
 class JackParser(ParserBase):
     def _match_recursive_varname(self) -> List[Element]:
@@ -490,21 +490,24 @@ class JackParser(ParserBase):
 
         return result
     
-    def klass_var_dec(self) -> Element:
+    def klass_var_dec(self) -> Union[Element, None]:
         result: Element = Element("classVarDec")
-        static_field: Element = self.expect_token("keyword", mult=["static", "field"])
-        result.append(static_field)
+        if self.top.tag == "keyword" and self.top.text in ["static", "field"]:
+            static_field: Element = self.expect_token("keyword", mult=["static", "field"])
+            result.append(static_field)
 
-        var_type: Element = self._match_type()
-        result.append(var_type)
+            var_type: Element = self._match_type()
+            result.append(var_type)
 
-        var_name: List[Element] = self._match_recursive_varname()
-        result.extend(var_name)
+            var_name: List[Element] = self._match_recursive_varname()
+            result.extend(var_name)
 
-        semicolon: Element = self.expect_token("symbol", ";")
-        result.append(semicolon)
+            semicolon: Element = self.expect_token("symbol", ";")
+            result.append(semicolon)
 
-        return result
+            return result
+        else:
+            return None
     
     # NOTE: This is the entrypoint for the class 
     def klass(self) -> Element:
@@ -519,8 +522,9 @@ class JackParser(ParserBase):
         open_bracket: Element = self.expect_token("symbol", "{")
         result.append(open_bracket)
 
-        class_var_decs: Element = self.klass_var_dec()
-        result.append(class_var_decs)
+        class_var_decs: Optional[Element] = self.klass_var_dec()
+        if class_var_decs is not None:
+            result.append(class_var_decs)
 
         # subroutine dec function isn't "recursive"?
         # i need to do the recursion here.
