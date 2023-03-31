@@ -404,7 +404,7 @@ class JackParser(ParserBase):
         
         def __handle_str_constant(self: JackParser):
             str_constant: Element = self._match_string_constant()
-            if isinstance(str_constant, str):
+            if isinstance(str_constant.text, str):
                 str_constant.text = str_constant.text.strip("\"")
             return str_constant
         

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Iterator, Optional
+from typing import List, Tuple, Iterator, Optional, Union
 from xml.etree.ElementTree import Element
 from re import Match
 import re
@@ -47,10 +47,10 @@ class TokenBuilder():
         self.re_obj: re.Pattern = re.compile(self.full_re)
         self.no_whitespace: re.Pattern = re.compile("\S")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return self
 
-    def __next__(self) -> Iterator:
+    def __next__(self) -> Union[Element, None]:
         if self._pos >= len(self._buf):
             raise StopIteration()
         else:
@@ -68,7 +68,8 @@ class TokenBuilder():
                 #       the one that matches keywords. This is how I've decided to resolve
                 #       it for now.
                 if token_type in ["identifier"]:
-                    contents: str = matchobj.group(group)
+                    if isinstance(group, str):
+                        contents: str = matchobj.group(group)
                     if contents in self._keyword_list:
                         token_type = "keyword"
 
@@ -86,14 +87,17 @@ class TokenBuilder():
                 if token_type == "INTEGER_CONSTANT":
                     token_type = "integerConstant"
                     token: Element = Element(token_type)
-                    token.text = matchobj.group(group)
+                    if isinstance(group, str):
+                        token.text = matchobj.group(group)
                 if token_type == "STRING_CONSTANT":
                     token_type = "stringConstant"
                     token = Element(token_type)
-                    token.text = matchobj.group(group)
+                    if isinstance(group, str):
+                        token.text = matchobj.group(group)
                 else:
                     token = Element(token_type)
-                    token.text = matchobj.group(group)
+                    if isinstance(group, str):
+                        token.text = matchobj.group(group)
                 self._pos = matchobj.end()
                 return token
 
