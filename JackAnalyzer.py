@@ -56,6 +56,8 @@ if __name__ == "__main__":
 
         # NOTE: and now we use the built-in write, not the path write
         output_token_file_name: str = f"{filepath.stem}T.xml"
+        # NOTE: If you don't use indent() it won't print properly,
+        #       everything will end up being on one line.
         indent(output_token_tree)
         output_token_tree.write(output_token_file_name, short_empty_elements=False)
 

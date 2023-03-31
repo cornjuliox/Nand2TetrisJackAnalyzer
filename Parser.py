@@ -536,4 +536,3 @@ class JackParser(ParserBase):
         result.append(close_bracket)
 
         return result
-        
