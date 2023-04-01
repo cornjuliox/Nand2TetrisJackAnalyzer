@@ -8,7 +8,7 @@ import re
 #       No, I don't care.
 RULES: List[Tuple] = [
     ("//.*", "COMMENT"),
-    ("/\*.+\*/", "STAR_COMMENT"),
+    ("/\*[\s\S]*?\*/", "STAR_COMMENT"),
     ("\\n|\\r", "NEWLINE"),
     (" ", "WHITESPACE"),
     ("\t", "WHITESPACE"),
@@ -44,6 +44,7 @@ class TokenBuilder():
             self.group_map[name] = element[1]
 
         self.full_re: str = "|".join(parts)
+        print(self.full_re)
         self.re_obj: re.Pattern = re.compile(self.full_re)
         self.no_whitespace: re.Pattern = re.compile("\S")
 

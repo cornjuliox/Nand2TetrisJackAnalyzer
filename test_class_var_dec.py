@@ -1,15 +1,20 @@
 from typing import List, Iterable, cast
-from xml.etree.ElementTree import indent, dump, Element
+from xml.etree.ElementTree import dump, Element
 
-from utils import make_tokenstream, parser_tester
+from utils import make_tokenstream, parser_tester, indent
 
 if __name__ == "__main__":
     sample_class_var_dec: List[str] = [
-        "field int x, y; // screen location of the square's top-left corner",
-        "field int size; // length of this square, in pixels",
-        "static boolean test;",
-        "field Square square; // the square of this game",
-        "field int direction;",
+        # "field int x, y; // screen location of the square's top-left corner",
+        # "field int size; // length of this square, in pixels",
+        # "static boolean test;",
+        # "field Square square; // the square of this game",
+        # "field int direction;",
+        """
+        field int direction;
+        field int x, y;
+        static boolean test;
+        """
     ]
     sample_class_var_dec_tokenstreams: List[List[Element]] = [make_tokenstream(x) for x in sample_class_var_dec]
 

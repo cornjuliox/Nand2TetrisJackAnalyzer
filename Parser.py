@@ -12,8 +12,6 @@ class JackParser(ParserBase):
 
         Used in the varDec rule, and the classVarDec rule. Semicolon needs to be matched outside
         this rule.
-
-        Results should ideally be unpacked and stored in a container to prevent nesting. 
         """
         results: List[Element] = []
         var_identifier = self._match_identifier()
@@ -58,6 +56,7 @@ class JackParser(ParserBase):
         try:
             type_varnames: List[Element] = self._match_recursive_type_varname()
         except ParserError:
+            result.text = "\n"
             return result
 
         # NOTE: I hope type_varnames and result are flat.
@@ -186,9 +185,9 @@ class JackParser(ParserBase):
         if self.top.tag != "symbol" and self.top.text != ";":
             expression: Element = self.expression()
             result.append(expression)
-        else:
-            semicolon: Element = self.expect_token("symbol", ";")
-            result.append(semicolon)
+
+        semicolon: Element = self.expect_token("symbol", ";")
+        result.append(semicolon)
 
         return result
 
@@ -308,6 +307,7 @@ class JackParser(ParserBase):
 
         # NOTE: Handles empty expression lists; i.e next character is ') '
         if self.top.tag == "symbol" and self.top.text == ")":
+            result.text = "\n"
             return result
         
         while True:
@@ -350,18 +350,11 @@ class JackParser(ParserBase):
                 expression_list: Element = self.expression_list()
                 results.append(expression_list)
                 close_paren: Element = self.expect_token("symbol", ")")
+                results.append(close_paren)
                 return results
 
         open_paren = self.expect_token("symbol", "(")
         results.append(open_paren)
-        # NOTE: empty expressions shouldn't appear at all
-        # # NOTE: 
-        # if self.top.tag == "SYMBOL" and self.top.text == ")":
-        #     # NOTE: bail immediately if you see the ')' next
-        #     close_paren = self.expect_token("SYMBOL", ")")
-        #     results.append(close_paren)
-        #     return results
-        # else:
         expression_list = self.expression_list()
         results.append(expression_list)
         close_paren = self.expect_token("symbol", ")")
@@ -471,6 +464,7 @@ class JackParser(ParserBase):
             "identifier": __handle_identifier,
             "symbol": __handle_symbol,
         }
+
         try:
             handler: Callable = dispatch_table[current_Element_type]
         except KeyError:
@@ -478,6 +472,12 @@ class JackParser(ParserBase):
             subcall: List[Element] = self.subroutine_call()
             result.extend(subcall)
             return result
+        
+        if self.top.tag == "identifier":
+            if self.lookahead().tag == "symbol" and self.lookahead().text == "(":
+                subcall = self.subroutine_call()
+                result.extend(subcall)
+                return result
 
         Element_Element: Element = handler(self)
         # NOTE: so with Element types, you really have to be careful
@@ -504,10 +504,9 @@ class JackParser(ParserBase):
 
             semicolon: Element = self.expect_token("symbol", ";")
             result.append(semicolon)
-
-            return result
         else:
             return None
+        return result
     
     # NOTE: This is the entrypoint for the class 
     def klass(self) -> Element:
@@ -522,15 +521,23 @@ class JackParser(ParserBase):
         open_bracket: Element = self.expect_token("symbol", "{")
         result.append(open_bracket)
 
-        class_var_decs: Optional[Element] = self.klass_var_dec()
-        if class_var_decs is not None:
-            result.append(class_var_decs)
+        while True:
+            try:
+                class_var_decs: Optional[Element] = self.klass_var_dec()
+                if class_var_decs is not None:
+                    result.append(class_var_decs)
+                else:
+                    break
+            except ParserError:
+                break
 
-        # subroutine dec function isn't "recursive"?
-        # i need to do the recursion here.
-        while self.top.tag == "keyword" and self.top.text in ["function", "constructor", "method"]:
-            subroutine_dec: Element = self.subroutine_dec()
-            result.append(subroutine_dec)
+        # NOTE: I question the wisdom of doing it like this
+        while True:
+            try:
+                subroutine_dec: Element = self.subroutine_dec()
+                result.append(subroutine_dec)
+            except ParserError:
+                break
         
         close_bracket: Element = self.expect_token("symbol", "}")
         result.append(close_bracket)
